@@ -1,0 +1,7 @@
+# Redis config
+#REDIS_HOST= "127.0.0.1"
+#REDIS_PORT = 10000
+
+# Default values
+DEFAULT_PORT = 10000
+DEFAULT_STATUS_PORT = 11000

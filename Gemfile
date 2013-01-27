@@ -1,0 +1,21 @@
+source 'http://rubygems.org'
+gem 'sinatra'
+gem 'thin'
+gem 'haml'
+gem 'hiredis'
+gem 'redis'
+gem 'ohm'
+
+group :development do
+  #gem 'awesome_print'
+  gem 'shotgun'
+  gem 'yard'
+  #gem 'rdiscount'
+end
+
+group :test do
+  gem 'rack-test'
+  gem 'test-unit'
+end
+
+

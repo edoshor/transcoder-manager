@@ -1,0 +1,5 @@
+require_relative 'transcoder'
+require_relative 'source'
+require_relative 'preset'
+require_relative 'slot'
+require_relative 'api_error'

@@ -1,4 +1,4 @@
-transcoder-manager
-==================
+TranscoderManager
+=================
 
-A minimalist backend for managing transcoders in BB web broadcast platform
+This is the backend REST api for managing BB web broadcast transcoders.
