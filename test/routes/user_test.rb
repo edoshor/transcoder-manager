@@ -40,14 +40,15 @@ class UserTest < Test::Unit::TestCase
 
   def test_transcoder_create_slot
     transcoder = Transcoder.create(name: 'transcoder1', host: '10.65.6.104')
-    post "/transcoders/#{transcoder.id}/slots", slot_id: 10
+    preset = Preset.create(name: 'preset1')
+    post "/transcoders/#{transcoder.id}/slots", slot_id: 10, preset_id: preset.id
     body = assert_successful last_response
     assert_equal '1', body['id']
     assert_equal '10', body['slot_id']
     assert_equal '1', body['transcoder_id']
     assert_equal 'transcoder1', body['transcoder_name']
-    assert_nil body['preset_id']
-    assert_nil body['preset_name']
+    assert_equal '1', body['preset_id']
+    assert_equal 'preset1', body['preset_name']
   end
 
   def test_transcoder_get_slots
@@ -60,7 +61,8 @@ class UserTest < Test::Unit::TestCase
     body = assert_successful last_response
     assert_empty body
 
-    post "/transcoders/#{transcoder.id}/slots", slot_id: 10
+    preset = Preset.create(name: 'preset1')
+    post "/transcoders/#{transcoder.id}/slots", slot_id: 10, preset_id: preset.id
     assert_successful last_response
     get "/transcoders/#{transcoder.id}/slots"
     body = assert_successful last_response
@@ -69,8 +71,8 @@ class UserTest < Test::Unit::TestCase
     assert_equal '10', body[0]['slot_id']
     assert_equal '1', body[0]['transcoder_id']
     assert_equal 'transcoder1', body[0]['transcoder_name']
-    assert_nil body[0]['preset_id']
-    assert_nil body[0]['preset_name']
+    assert_equal '1', body[0]['preset_id']
+    assert_equal 'preset1', body[0]['preset_name']
   end
 
   def test_get_slot
@@ -83,7 +85,8 @@ class UserTest < Test::Unit::TestCase
     body = assert_api_error last_response
     assert body['message'].include? 'Unknown slot'
 
-    post "/transcoders/#{transcoder.id}/slots", slot_id: 10
+    preset = Preset.create(name: 'preset1')
+    post "/transcoders/#{transcoder.id}/slots", slot_id: 10, preset_id: preset.id
     body = assert_successful last_response
     get "/transcoders/#{transcoder.id}/slots/#{body['id']}"
     body = assert_successful last_response
@@ -91,8 +94,8 @@ class UserTest < Test::Unit::TestCase
     assert_equal '10', body['slot_id']
     assert_equal '1', body['transcoder_id']
     assert_equal 'transcoder1', body['transcoder_name']
-    assert_nil body['preset_id']
-    assert_nil body['preset_name']
+    assert_equal '1', body['preset_id']
+    assert_equal 'preset1', body['preset_name']
   end
 
   def test_delete_slot
@@ -105,7 +108,8 @@ class UserTest < Test::Unit::TestCase
     body = assert_api_error last_response
     assert body['message'].include? 'Unknown slot'
 
-    post "/transcoders/#{transcoder.id}/slots", slot_id: 10
+    preset = Preset.create(name: 'preset1')
+    post "/transcoders/#{transcoder.id}/slots", slot_id: 10, preset_id: preset.id
     body = assert_successful last_response
     delete "/transcoders/#{transcoder.id}/slots/#{body['id']}"
     body = assert_successful last_response
@@ -232,6 +236,25 @@ class UserTest < Test::Unit::TestCase
     assert body['result'].include? 'success'
   end
 
+  # --- Presets ---
+
+  def test_create_preset
+    post '/presets', name: 'preset1', tracks: [
+        {gain: 20, num_channels: 2, profile_number: 101},
+        {gain: 0, num_channels: 0, profile_number: 1}]
+    preset = assert_successful last_response
+    assert_not_nil preset
+    assert_equal '1', preset['id']
+    assert_equal 'preset1', preset['name']
+    assert_equal 2, preset['tracks'].length
+    assert_equal '20', preset['tracks'][0]['gain']
+    assert_equal '2', preset['tracks'][0]['num_channels']
+    assert_equal '101', preset['tracks'][0]['profile_number']
+    assert_equal '0', preset['tracks'][1]['gain']
+    assert_equal '0', preset['tracks'][1]['num_channels']
+    assert_equal '1', preset['tracks'][1]['profile_number']
+  end
+
   private
 
   def assert_successful(resp)
@@ -253,7 +276,7 @@ class UserTest < Test::Unit::TestCase
     assert_equal 400, resp.status
     assert resp.header['Content-Type'].include?('application/json')
     body = JSON.parse resp.body
-    assert_equal 'API error', body['result']
+    assert_equal 'Api error', body['result']
     assert_not_nil body['message']
     body
   end

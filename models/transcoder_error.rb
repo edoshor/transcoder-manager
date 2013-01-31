@@ -1,0 +1,2 @@
+class TranscoderError < StandardError
+end

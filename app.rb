@@ -41,16 +41,25 @@ class TranscoderManager < Sinatra::Base
   end
 
   error do
-    status 500
-    e = env['sinatra.error']
-    logger.error e
-    {:result => 'Unexpected error', :message => e.message}.to_json
+    handle_error 500, 'Unexpected error'
   end
 
-  error APIError do
-    status 400
-    e = env['sinatra.error']
-    {:result => 'API error', :message => e.message}.to_json
+  error ApiError do
+    handle_error 400, 'Api error'
   end
+
+  error TranscoderError do
+    handle_error 400, 'Transcoder error'
+  end
+
+  private
+
+  def handle_error(code, result)
+    status code
+    e = env['sinatra.error']
+    logger.error e
+    {:result => result, :message => e.message}.to_json
+  end
+
 
 end

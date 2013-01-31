@@ -1,2 +1,2 @@
-class APIError < StandardError
+class ApiError < StandardError
 end
