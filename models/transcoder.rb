@@ -10,6 +10,8 @@ class Transcoder < Ohm::Model
   attribute :port
   attribute :status_port
   collection :slots, :Slot
+  unique :name
+
 
   # Determine which api class to use based on environment
   def self.api_class
@@ -53,7 +55,7 @@ class Transcoder < Ohm::Model
   end
 
   def create_slot(slot)
-    tracks = slot.preset.tracks.map { |track| track.to_a}
+    tracks = slot.scheme.preset.tracks.map { |t| t.to_a}
     raise_if_error api.mod_create_slot(slot.slot_id, true, tracks.size, tracks)
   end
 

@@ -6,6 +6,7 @@ gem 'hiredis'
 gem 'redis'
 gem 'ohm'
 
+
 group :development do
   #gem 'awesome_print'
   gem 'shotgun'
@@ -16,6 +17,7 @@ end
 group :test do
   gem 'rack-test'
   gem 'test-unit'
+  gem 'factory_girl'
 end
 
 

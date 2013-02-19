@@ -6,6 +6,8 @@ class Source < Ohm::Model
   attribute :host
   attribute :port
 
+  unique :name
+
   def validate
     assert_present :name
     assert_present :host
