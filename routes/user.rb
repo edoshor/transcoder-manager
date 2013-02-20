@@ -93,7 +93,7 @@ class TranscoderManager < Sinatra::Base
   end
 
   get '/transcoders/:id/net-config' do
-    get_model(tid, Transcoder).get_net_config.to_json
+    get_model(params[:id], Transcoder).get_net_config.to_json
     #TODO return net config json
   end
 
@@ -132,7 +132,11 @@ class TranscoderManager < Sinatra::Base
   end
 
   get '/transcoders/:id/slots/start' do
-    raise 'not implemented'
+    transcoder = get_model(params[:id], Transcoder)
+    transcoder.slots.all.each do |slot|
+      transcoder.start_slot slot
+    end
+    success
   end
 
   get '/transcoders/:id/slots/stop' do
@@ -144,7 +148,11 @@ class TranscoderManager < Sinatra::Base
   end
 
   get '/transcoders/:id/slots/:id/start' do |tid, sid|
-    raise 'not implemented'
+    transcoder = get_model(tid, Transcoder)
+    slot = transcoder.slots[sid]
+    raise ApiError, "Unknown slot with id #{sid}" if slot.nil?
+    transcoder.start_slot slot
+    success
   end
 
   get '/transcoders/:id/slots/stop' do |tid, sid|
@@ -162,7 +170,7 @@ class TranscoderManager < Sinatra::Base
     #TODO return status.to_json
   end
 
-  get '/transcoders/:id/slots/status' do |tid, sid|
+  get '/transcoders/:id/slots/:id/status' do |tid, sid|
     transcoder = get_model(tid, Transcoder)
     slot = transcoder.slots[sid]
     raise ApiError, "Unknown slot with id #{sid}" if slot.nil?

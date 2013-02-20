@@ -5,6 +5,7 @@ gem 'haml'
 gem 'hiredis'
 gem 'redis'
 gem 'ohm'
+gem 'ohm-contrib'
 
 
 group :development do

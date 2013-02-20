@@ -1,15 +1,34 @@
 require_relative '../test_helper.rb'
-require_relative '../../app.rb'
 
-# include this in every describe block
 module AcceptanceHelper
-  require "minitest/autorun" # for describe and it methods
-  require 'capybara-webkit' # for using the webkit driver - it's fast and support js
-  require 'capybara/dsl' # for Capybara
-  include Capybara::DSL # for visit method
+  include Rack::Test::Methods
+  include FactoryGirl::Syntax::Methods
+  include TestHelper
 
-  Capybara.app = TranscoderManager
-  Capybara.javascript_driver = :webkit
+  def assert_successful(resp)
+    assert_equal 200, resp.status
+    assert resp.header['Content-Type'].include?('application/json')
+    JSON.parse resp.body
+  end
+
+  def assert_validation_error(resp)
+    assert_equal 400, resp.status
+    assert resp.header['Content-Type'].include?('application/json')
+    assert resp.header['X-Status-Reason'].include?('Validation failed')
+    body = JSON.parse resp.body
+    assert_false body.empty?
+    body
+  end
+
+  def assert_api_error(resp)
+    assert_equal 400, resp.status
+    assert resp.header['Content-Type'].include?('application/json')
+    body = JSON.parse resp.body
+    assert_equal 'Api error', body['result']
+    assert_not_nil body['message']
+    body
+  end
+
 end
 
 

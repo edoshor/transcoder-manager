@@ -11,3 +11,22 @@ ENV['REDIS_URL'] = 'redis://127.0.0.1:6379/1'
 
 Bundler.setup
 Bundler.require(:test)
+
+module TestHelper
+
+
+  def app
+    TranscoderManager.new
+  end
+
+  def teardown
+    Ohm.flush # clear all keys in redis after each test
+  end
+
+  def self.shutdown
+    Ohm.flush # clear all keys in redis after tests finished
+  end
+
+
+
+end

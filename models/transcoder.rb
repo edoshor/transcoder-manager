@@ -46,6 +46,10 @@ class Transcoder < Ohm::Model
     @api ||= self.class.api_class.new(host: host, port: port)
   end
 
+  def api= (api)
+    @api = api
+  end
+
   def is_alive?
     api.is_alive?
   end
@@ -69,11 +73,12 @@ class Transcoder < Ohm::Model
   end
 
   def get_slot_status(slot)
-    raise 'not implemented'
+    raise_if_error api.mod_slot_get_status(slot.slot_id)
   end
 
   def start_slot(slot)
-    raise 'not implemented'
+    ip1, port1, ip2, port2, tracks_cnt, tracks = slot.scheme.to_start_args
+    raise_if_error api.mod_slot_restart(slot.slot_id, ip1, port1, ip2, port2, tracks_cnt, tracks)
   end
 
   def stop_slot(slot)

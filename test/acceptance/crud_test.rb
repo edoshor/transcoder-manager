@@ -1,32 +1,12 @@
-require_relative '../test_helper'
+require_relative 'acceptance_helper'
 
-class UserTest < Test::Unit::TestCase
-  include Rack::Test::Methods
-  include FactoryGirl::Syntax::Methods
-
-  def app
-    TranscoderManager.new
-  end
-
-  def setup
-    Ohm.flush # clear all keys in redis before each test
-  end
-
-  def self.shutdown
-    Ohm.flush # clear all keys in redis after tests finished
-  end
-
-
-  def test_root
-    get '/'
-    body = assert_successful last_response
-    assert body['result'].include? 'BB Web Broadcast - Transcoder Manager'
-  end
+class CrudTest < Test::Unit::TestCase
+  include AcceptanceHelper
 
   # --- Transcoders ---
 
   def test_create_transcoder
-    post '/transcoders',name: 'transcoder1', host: '10.65.6.104'
+    post '/transcoders', name: 'transcoder1', host: '10.65.6.104'
     body = assert_successful last_response
     assert_not_nil body
     assert_equal '1', body['id']
@@ -226,32 +206,6 @@ class UserTest < Test::Unit::TestCase
 
     scheme = assert_successful last_response
     assert_not_nil scheme
-  end
-
-  private
-
-  def assert_successful(resp)
-    assert_equal 200, resp.status
-    assert resp.header['Content-Type'].include?('application/json')
-    JSON.parse resp.body
-  end
-
-  def assert_validation_error(resp)
-    assert_equal 400, resp.status
-    assert resp.header['Content-Type'].include?('application/json')
-    assert resp.header['X-Status-Reason'].include?('Validation failed')
-    body = JSON.parse resp.body
-    assert_false body.empty?
-    body
-  end
-
-  def assert_api_error(resp)
-    assert_equal 400, resp.status
-    assert resp.header['Content-Type'].include?('application/json')
-    body = JSON.parse resp.body
-    assert_equal 'Api error', body['result']
-    assert_not_nil body['message']
-    body
   end
 
 end

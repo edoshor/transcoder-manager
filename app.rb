@@ -28,9 +28,9 @@ class TranscoderManager < Sinatra::Base
     #enable :raise_errors
   end
 
-  configure :qa do
+  configure :test do
     enable :dump_errors
-    #enable :raise_errors
+    enable :raise_errors
   end
 
   configure :production do
