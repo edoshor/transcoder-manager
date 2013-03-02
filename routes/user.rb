@@ -18,9 +18,13 @@ class TranscoderManager < Sinatra::Base
   end
 
   post '/transcoders' do
-    transcoder = Transcoder.new(params.select{ |k, v| %w(name host port status_port).include? k })
-    raise ApiError, "Transcoder at #{transcoder.host}:#{transcoder.port} is not responding" unless transcoder.is_alive?
-    save_model transcoder
+    name, host = expect_params 'name', 'host'
+    transcoder = Transcoder.new(name: name, host: host, port: params['port'], status_port: params['status_port'])
+
+    raise ApiError, "Transcoder at #{transcoder.host}:#{transcoder.port} is not responding" \
+    unless transcoder.is_alive?
+
+      save_model transcoder
   end
 
   delete '/transcoders' do
@@ -36,9 +40,7 @@ class TranscoderManager < Sinatra::Base
   end
 
   delete '/transcoders/:id' do
-    transcoder = Transcoder[params[:id]]
-    raise ApiError, "Unknown transcoder with id #{params[:id]}" if transcoder.nil?
-
+    transcoder = get_model(params[:id], Transcoder)
     #TODO don't terminate if transcoder is active !
 
     transcoder.delete
@@ -46,8 +48,7 @@ class TranscoderManager < Sinatra::Base
   end
 
   get '/transcoders/:id/slots' do
-    transcoder = Transcoder[params[:id]]
-    raise ApiError, "Unknown transcoder with id #{params[:id]}" if transcoder.nil?
+    transcoder = get_model(params[:id], Transcoder)
     transcoder.slots.map { |s| s.to_hash}.to_json
   end
 
@@ -155,7 +156,7 @@ class TranscoderManager < Sinatra::Base
     success
   end
 
-  get '/transcoders/:id/slots/stop' do |tid, sid|
+  get '/transcoders/:id/slots/:id/stop' do |tid, sid|
     transcoder = get_model(tid, Transcoder)
     slot = transcoder.slots[sid]
     raise ApiError, "Unknown slot with id #{sid}" if slot.nil?
@@ -165,18 +166,20 @@ class TranscoderManager < Sinatra::Base
 
   get '/transcoders/:id/slots/status' do
     transcoder = get_model(params[:id], Transcoder)
-    status = transcoder.slots.all.map { |slot| transcoder.get_slot_status slot}
-
-    #TODO return status.to_json
+    status = transcoder.slots.all.map { |slot| prepare_slot_status(transcoder.get_slot_status(slot))}
+    status.to_json
   end
 
   get '/transcoders/:id/slots/:id/status' do |tid, sid|
     transcoder = get_model(tid, Transcoder)
     slot = transcoder.slots[sid]
     raise ApiError, "Unknown slot with id #{sid}" if slot.nil?
-    status = transcoder.get_slot_status slot
+    resp = transcoder.get_slot_status(slot)
+    prepare_slot_status(resp).to_json
+  end
 
-    #TODO return status.to_json
+  get '/transcoders/:id/status' do
+    raise 'not implemented'
   end
 
   # --- Sources ---
@@ -186,7 +189,8 @@ class TranscoderManager < Sinatra::Base
   end
 
   post '/sources' do
-    save_model Source.new(params.select{|k,v| %w(name host port).include? k})
+    name, host, port = expect_params 'name', 'host', 'port'
+    save_model Source.new(name: name, host: host, port: port)
   end
 
   delete '/sources' do
@@ -320,6 +324,10 @@ class TranscoderManager < Sinatra::Base
   end
 
   def validation_error(errors)
+    request.body.rewind  # in case someone already read it
+    logger.info "Validation error: #{errors}"
+    logger.debug "request.body= #{request.body.read}"
+
     status 400
     headers 'X-Status-Reason' => 'Validation failed'
     errors.to_json
@@ -330,6 +338,18 @@ class TranscoderManager < Sinatra::Base
       raise ApiError, "expecting #{p} but didn't get any" if params[p].nil?
       params[p]
     }
+  end
+
+  def prepare_slot_status(resp)
+    if resp[:error] == TranscoderApi::RET_OK
+      if resp[:message].include? 'stop'
+        { status: 'success', running: false }
+      else
+        { status: 'success', running: true, signal: resp[:result][:signal], uptime: resp[:result][:uptime] }
+      end
+    else
+      { status: 'error', type: resp[:error], message: resp[:message]}
+    end
   end
 
 end

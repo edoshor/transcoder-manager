@@ -6,7 +6,7 @@ gem 'hiredis'
 gem 'redis'
 gem 'ohm'
 gem 'ohm-contrib'
-
+gem 'log4r'
 
 group :development do
   #gem 'awesome_print'

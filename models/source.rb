@@ -1,10 +1,13 @@
 require 'ohm'
+require 'ohm/datatypes'
 require 'resolv'
 
 class Source < Ohm::Model
+  include Ohm::DataTypes
+
   attribute :name
   attribute :host
-  attribute :port
+  attribute :port, Type::Integer
 
   unique :name
 

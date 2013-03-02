@@ -2,30 +2,34 @@ require 'sinatra/base'
 require_relative 'routes/init'
 require_relative 'helpers/init'
 require_relative 'models/init'
+require_relative 'lib/log_wrapper'
 require 'haml'
 require 'uri'
 require 'redis'
 require 'json'
 require 'ohm'
+require 'log4r'
+require 'log4r/yamlconfigurator'
+require 'log4r/outputter/datefileoutputter'
 
 class TranscoderManager < Sinatra::Base
-  enable :method_override
-  #enable :sessions
-  #set :session_secret, 'super secret'
+
+  disable :logging
+  Log4r::YamlConfigurator.load_yaml_file "config/logging-#{ENV['RACK_ENV']}.yaml"
+  use Rack::CommonLogger, LogWrapper.new('main')
+  Log4r::Logger['main'].debug('Application loaded')
 
   configure do
     set :app_file, __FILE__
     disable :show_exceptions
     disable :raise_errors
-    enable :logging
 
-    set :redis_url, ENV['REDIS_URL'] || 'redis://127.0.0.1:6379/0'
+    set :redis_url, ENV['REDIS_URL'] || 'redis://127.0.0.1/0'
     Ohm.connect url: settings.redis_url
   end
 
   configure :development do
     enable :dump_errors
-    #enable :raise_errors
   end
 
   configure :test do
@@ -34,14 +38,19 @@ class TranscoderManager < Sinatra::Base
   end
 
   configure :production do
+    disable :dump_errors
   end
 
-  get '/*' do
-    success "BB Web Broadcast - Transcoder Manager. #{Time.now}"
+  get '/' do
+    "BB Web Broadcast - Transcoder Manager. #{Time.now}"
+  end
+
+  not_found do
+    'This is nowhere to be found. Intention !'
   end
 
   error do
-    handle_error 500, 'Unexpected error'
+    handle_error 500, 'Internal Server Error'
   end
 
   error ApiError do
@@ -54,12 +63,21 @@ class TranscoderManager < Sinatra::Base
 
   private
 
-  def handle_error(code, result)
-    status code
-    e = env['sinatra.error']
-    logger.error e
-    {:result => result, :message => e.message}.to_json
+  def logger
+    logger = Log4r::Logger['main']
+    raise 'logging not initialized properly' if logger.nil?
+    logger
   end
 
+  def log_exception(e)
+    trace = e.backtrace.join("\n")
+    logger.error("Exception: '#{e.message}'\nBacktrace:\n#{trace}")
+  end
+
+  def handle_error(status, message)
+    e = env['sinatra.error']
+    status == 500 ? log_exception(e) : logger.warn(e.message)
+    halt status, {'Content-Type' => 'text/plain'}, "#{message} - #{e.message}\n"
+  end
 
 end

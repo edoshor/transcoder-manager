@@ -23,6 +23,7 @@ module TestHelper
     Ohm.flush # clear all keys in redis after each test
   end
 
+
   def self.shutdown
     Ohm.flush # clear all keys in redis after tests finished
   end

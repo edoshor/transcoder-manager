@@ -45,13 +45,12 @@ class Scheme < Ohm::Model
   end
 
   def to_start_args
-    ip1 = ip2 = src1.host
-    port1 = port2 = src1.port
-    unless src2.nil?
-      ip2 = src2.host
-      port2 = src2.port
-    end
-
-    [ip1, port1, ip2, port2, audio_mappings.length, audio_mappings.map {|e| e.to_i} ]
+    [src1.host, # ip1
+     src1.port, # port1
+     src2.nil? ? src1.host : src2.host, # ip2
+     src2.nil? ? src1.port : src2.port, # port2
+     audio_mappings.length, # track_cnt
+     audio_mappings.map {|e| e.to_i}  # tracks
+    ]
   end
 end

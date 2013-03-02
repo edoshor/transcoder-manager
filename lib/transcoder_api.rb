@@ -218,6 +218,7 @@ class TranscoderApi
   end
 
   def is_alive?
+    socket = nil
     begin
       timeout(@timeout) do
         socket = TCPSocket.open(@host, @port)

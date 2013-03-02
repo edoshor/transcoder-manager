@@ -6,6 +6,7 @@ module AcceptanceHelper
   include TestHelper
 
   def assert_successful(resp)
+    puts resp.to_s unless resp.status == 200
     assert_equal 200, resp.status
     assert resp.header['Content-Type'].include?('application/json')
     JSON.parse resp.body

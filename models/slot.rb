@@ -1,13 +1,16 @@
 require 'ohm'
+require 'ohm/datatypes'
 
 class Slot < Ohm::Model
-  attribute :slot_id
+  include Ohm::DataTypes
+
+  attribute :slot_id, Type::Integer
   reference :transcoder, :Transcoder
   reference :scheme, :Scheme
 
   def validate
     assert_numeric :slot_id
-    assert slot_id.to_i.between?(0,255), [:slot_id, :not_in_range]
+    assert slot_id.between?(0,255), [:slot_id, :not_in_range]
     assert_present :transcoder
     assert_present :scheme
   end

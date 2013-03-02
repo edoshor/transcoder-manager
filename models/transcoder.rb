@@ -1,21 +1,24 @@
 require 'ohm'
+require 'ohm/datatypes'
 require 'resolv'
 require_relative '../lib/transcoder_api'
 require_relative '../lib/stub_transcoder_api'
 require_relative '../app_config'
 
 class Transcoder < Ohm::Model
+  include Ohm::DataTypes
+
   attribute :name
   attribute :host
-  attribute :port
-  attribute :status_port
+  attribute :port, Type::Integer
+  attribute :status_port, Type::Integer
   collection :slots, :Slot
   unique :name
 
 
   # Determine which api class to use based on environment
   def self.api_class
-    @api_class ||=  %w(test development).include?(ENV['RACK_ENV']) ? StubTranscoderApi : TranscoderApi
+    @api_class ||=  %w(test).include?(ENV['RACK_ENV']) ? StubTranscoderApi : TranscoderApi
   end
 
   def initialize(atts)
@@ -28,9 +31,9 @@ class Transcoder < Ohm::Model
     assert_present :name
     assert_present :host
     assert_numeric :port
-    assert port.to_i.between?(0,65365), [:port, :not_in_range]
+    assert port.between?(0,65365), [:port, :not_in_range]
     assert_numeric :status_port
-    assert status_port.to_i.between?(0,65365), [:status_port, :not_in_range]
+    assert status_port.between?(0,65365), [:status_port, :not_in_range]
     assert_format :host, Resolv::IPv4::Regex, [:host, :not_valid_ipv4]
   end
 
@@ -60,7 +63,7 @@ class Transcoder < Ohm::Model
 
   def create_slot(slot)
     tracks = slot.scheme.preset.tracks.map { |t| t.to_a}
-    raise_if_error api.mod_create_slot(slot.slot_id, true, tracks.size, tracks)
+    raise_if_error api.mod_create_slot(slot.slot_id, 1, tracks.size, tracks)
   end
 
   def delete_slot(slot)
@@ -78,7 +81,8 @@ class Transcoder < Ohm::Model
 
   def start_slot(slot)
     ip1, port1, ip2, port2, tracks_cnt, tracks = slot.scheme.to_start_args
-    raise_if_error api.mod_slot_restart(slot.slot_id, ip1, port1, ip2, port2, tracks_cnt, tracks)
+    result = api.mod_slot_restart(slot.slot_id, ip1, port1, ip2, port2, tracks_cnt, tracks)
+    raise_if_error result
   end
 
   def stop_slot(slot)

@@ -86,7 +86,7 @@ class StubTranscoderApi
         ret[:message] = "Slot is stopped"
       else
         ret[:message] = "Slot is running"
-        ret[:result] = slot.merge({signal: 'signal', uptime: (Time.now - slot[:source][:start_time]).to_i})
+        ret[:result] = slot.merge({signal: 1+ rand(1), uptime: (Time.now - slot[:source][:start_time]).to_i})
       end
     else
       ret[:message] = get_error(error)

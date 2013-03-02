@@ -22,7 +22,13 @@ class TranscodingTest < Test::Unit::TestCase
 
     get '/transcoders/1/slots/1/start'
     body = assert_successful last_response
-    assert_match /success/, body
+    assert_equal 'success', body['result']
+
+    get '/transcoders/1/slots/1/status'
+    body = assert_successful last_response
+    assert_equal 'success', body['status']
+    assert body['signal'].to_i.between?(1,2)
+    assert body['uptime'].to_i >= 0
   end
 
 end
