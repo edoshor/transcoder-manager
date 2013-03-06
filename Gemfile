@@ -1,7 +1,6 @@
 source 'http://rubygems.org'
 gem 'sinatra'
 gem 'thin'
-gem 'haml'
 gem 'hiredis'
 gem 'redis'
 gem 'ohm'

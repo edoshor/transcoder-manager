@@ -53,4 +53,21 @@ class Scheme < Ohm::Model
      audio_mappings.map {|e| e.to_i}  # tracks
     ]
   end
+
+  # Try to find a Scheme with the parameters returned from the given
+  # low level api results.
+  # @param preset_resp result of mod_get_slot
+  # @param status_resp result of mod_get_slot_status
+  #
+  def self.match(preset, status)
+    src1 = Source.first_by_address(status[:ip1], status[:port1])
+    src1 or return nil
+
+    src2 = Source.first_by_address(status[:ip2], status[:port2])
+    src2 or return nil
+
+    preset = Preset.match preset[:tracks]
+    preset or return nil
+
+  end
 end

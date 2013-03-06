@@ -1,7 +1,7 @@
 class TranscoderManager < Sinatra::Base
 
   get '/admin' do
-    haml :default
+    'yes sir ?'
   end
 
 end

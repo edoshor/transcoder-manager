@@ -1,9 +1,7 @@
 require 'sinatra/base'
 require_relative 'routes/init'
-require_relative 'helpers/init'
 require_relative 'models/init'
 require_relative 'lib/log_wrapper'
-require 'haml'
 require 'uri'
 require 'redis'
 require 'json'
@@ -14,18 +12,20 @@ require 'log4r/outputter/datefileoutputter'
 
 class TranscoderManager < Sinatra::Base
 
+  # initialize logging
   disable :logging
   Log4r::YamlConfigurator.load_yaml_file "config/logging-#{ENV['RACK_ENV']}.yaml"
   use Rack::CommonLogger, LogWrapper.new('main')
   Log4r::Logger['main'].debug('Application loaded')
 
+  # initialize connection to redis
+  set :redis_url, ENV['REDIS_URL'] || 'redis://127.0.0.1/0'
+  Ohm.connect url: settings.redis_url
+
   configure do
     set :app_file, __FILE__
     disable :show_exceptions
     disable :raise_errors
-
-    set :redis_url, ENV['REDIS_URL'] || 'redis://127.0.0.1/0'
-    Ohm.connect url: settings.redis_url
   end
 
   configure :development do

@@ -132,10 +132,14 @@ class TranscoderManager < Sinatra::Base
     raise 'not implemented'
   end
 
+  get '/transcoders/:id/sync' do
+    get_model(params[:id], Transcoder).sync and success
+  end
+
   get '/transcoders/:id/slots/start' do
     transcoder = get_model(params[:id], Transcoder)
     transcoder.slots.all.each do |slot|
-      transcoder.start_slot slot
+      transcoder.start_slot slot unless slot.scheme.nil?
     end
     success
   end
@@ -152,6 +156,7 @@ class TranscoderManager < Sinatra::Base
     transcoder = get_model(tid, Transcoder)
     slot = transcoder.slots[sid]
     raise ApiError, "Unknown slot with id #{sid}" if slot.nil?
+    raise ApiError, 'Slot has no scheme, delete it and start again.' if slot.scheme.nil?
     transcoder.start_slot slot
     success
   end

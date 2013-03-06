@@ -16,4 +16,14 @@ class Preset < Ohm::Model
   def to_s
     "Preset: name=#{name},track_cnt=#{tracks.size}"
   end
+
+  def self.match(profiles)
+    preset = nil
+    Preset.all.each do |p|
+      preset = p if profiles == p.tracks.map {|t| t.profile_number}
+      break unless preset.nil?
+    end
+    preset
+  end
+
 end

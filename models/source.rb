@@ -10,6 +10,8 @@ class Source < Ohm::Model
   attribute :port, Type::Integer
 
   unique :name
+  index :host
+  index :port
 
   def validate
     assert_present :name
@@ -25,6 +27,11 @@ class Source < Ohm::Model
 
   def to_s
     "Source: name=#{name}, host=#{host}, port=#{port}"
+  end
+
+  def self.first_by_address(host, port)
+    results = Source.find(host: host, port: port)
+    (results.nil? || results.empty? ) ? nil : results.first
   end
 
 end

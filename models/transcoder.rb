@@ -1,6 +1,7 @@
 require 'ohm'
 require 'ohm/datatypes'
 require 'resolv'
+require 'log4r'
 require_relative '../lib/transcoder_api'
 require_relative '../lib/stub_transcoder_api'
 require_relative '../app_config'
@@ -51,6 +52,10 @@ class Transcoder < Ohm::Model
 
   def api= (api)
     @api = api
+  end
+
+  def logger
+    @logger ||= Log4r::Logger['events'] or Log4r::Logger.root
   end
 
   def is_alive?
@@ -105,13 +110,80 @@ class Transcoder < Ohm::Model
     raise 'not implemented'
   end
 
+  def sync
+    logger.info "Synchronizing transcoder: #{name} @ #{host}"
+
+    # check transcoder is alive
+    unless is_alive?
+      logger.warn 'transcoder is not responding'
+      return
+    end
+
+    # compare slots count
+    resp = api.mod_get_slots
+    actual_slot_cnt = resp[:result][:slots_cnt]
+    if  actual_slot_cnt == slots.size
+      logger.info "slots count match. #{actual_slot_cnt} total slots"
+    else
+      logger.warn "slots count mismatch. #{actual_slot_cnt} actual slots, #{slots.size} in configuration."
+    end
+    actual_slots_ids = resp[:result][:slots_ids]
+
+    # remove stale slots configuration
+    slots.each do |s|
+      unless actual_slots_ids.include? s.slot_id
+        logger.info "removing slot_id #{s.slot_id} from config. It's not present on transcoder"
+        s.delete
+      end
+    end
+
+    # synchronize actual slots
+    actual_slots_ids.each do |s_id|
+      # lookup slot by slot_id
+      slot = slots.find(slot_id: s_id)
+
+      # create the slot if necessary
+      if slot.nil?
+        logger.info "slot #{s_id} not in configuration, creating it."
+        slot = Slot.create(slot_id: s_id, transcoder: self)
+      end
+
+      # match scheme if running
+      resp = api.mod_slot_get_status(s_id)
+      if resp[:message].include? 'stopped'
+        logger.info 'slot is not running, can not match scheme.'
+      else
+        scheme = nil
+        get_slot = api.mod_get_slot(s_id)
+        unless get_slot.nil? || api_error?(get_slot)
+          scheme = Scheme.match get_slot[:result], resp[:result]
+        end
+        if scheme.nil?
+          logger.info 'Could not match scheme'
+          logger.debug "get_slot returned: #{get_slot}"
+          logger.debug "status returned: #{resp[:result]}"
+        else
+          logger.info "Scheme matched #{scheme.name}"
+          slot.scheme = scheme
+        end
+      end
+
+    end
+
+    logger.info 'synchronization completed successfully'
+  end
+
   private
 
   # Raise an error if api returned error
   def raise_if_error(resp)
     raise TranscoderError, "Error code: #{resp[:error]}. Message: #{resp[:message]}" \
-    if resp[:error] != TranscoderApi::RET_OK
+    if api_error? resp
     resp
+  end
+
+  def api_error? (resp)
+    resp[:error] != TranscoderApi::RET_OK
   end
 
 end
