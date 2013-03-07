@@ -38,7 +38,7 @@ FactoryGirl.define do
 
   factory :transcoder do
     sequence(:name) {|n| "transcoder#{n}" }
-    sequence(:host) {|n| "10.66.132.#{n}" }
+    sequence(:host) {|n| "10.65.6.#{n}" }
     port 10000
     status_port 11000
 

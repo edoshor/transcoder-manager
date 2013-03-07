@@ -8,6 +8,7 @@ require 'test/unit'
 require 'rack/test'
 require 'bundler'
 require 'factory_girl'
+require 'mocha/setup'
 require_relative '../app'
 require_relative '../app_config'
 require_relative 'factories'
@@ -28,7 +29,6 @@ module TestHelper
   def self.shutdown
     Ohm.flush # clear all keys in redis after tests finished
   end
-
 
 
 end

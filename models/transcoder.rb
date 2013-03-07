@@ -121,6 +121,12 @@ class Transcoder < Ohm::Model
 
     # compare slots count
     resp = api.mod_get_slots
+    if api_error? resp
+      logger.error 'api error while getting slots'
+      logger.error resp
+      return
+    end
+
     actual_slot_cnt = resp[:result][:slots_cnt]
     if  actual_slot_cnt == slots.size
       logger.info "slots count match. #{actual_slot_cnt} total slots"
@@ -139,8 +145,10 @@ class Transcoder < Ohm::Model
 
     # synchronize actual slots
     actual_slots_ids.each do |s_id|
+      logger.info "synchronizing slot id #{s_id}"
+
       # lookup slot by slot_id
-      slot = slots.find(slot_id: s_id)
+      slot = slots.find(slot_id: s_id).first
 
       # create the slot if necessary
       if slot.nil?
@@ -150,21 +158,30 @@ class Transcoder < Ohm::Model
 
       # match scheme if running
       resp = api.mod_slot_get_status(s_id)
+      if api_error? resp
+        logger.error 'api error while getting slot status'
+        logger.error resp
+        next
+      end
+
       if resp[:message].include? 'stopped'
         logger.info 'slot is not running, can not match scheme.'
       else
-        scheme = nil
         get_slot = api.mod_get_slot(s_id)
-        unless get_slot.nil? || api_error?(get_slot)
-          scheme = Scheme.match get_slot[:result], resp[:result]
+        if api_error? get_slot
+          logger.error 'api error while getting slot'
+          logger.error get_slot
+          next
         end
+
+        scheme = Scheme.match get_slot[:result], resp[:result]
         if scheme.nil?
           logger.info 'Could not match scheme'
           logger.debug "get_slot returned: #{get_slot}"
           logger.debug "status returned: #{resp[:result]}"
         else
-          logger.info "Scheme matched #{scheme.name}"
-          slot.scheme = scheme
+          logger.info "matched scheme is #{scheme.name}"
+          slot.update(scheme: scheme)
         end
       end
 
@@ -183,7 +200,7 @@ class Transcoder < Ohm::Model
   end
 
   def api_error? (resp)
-    resp[:error] != TranscoderApi::RET_OK
+    resp.nil? || resp[:error] != TranscoderApi::RET_OK
   end
 
 end

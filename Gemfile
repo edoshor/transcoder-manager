@@ -18,6 +18,7 @@ group :test do
   gem 'rack-test'
   gem 'test-unit'
   gem 'factory_girl'
+  gem 'mocha', require: false
 end
 
 
