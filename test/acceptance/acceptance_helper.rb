@@ -23,11 +23,9 @@ module AcceptanceHelper
 
   def assert_api_error(resp)
     assert_equal 400, resp.status
-    assert resp.header['Content-Type'].include?('application/json')
-    body = JSON.parse resp.body
-    assert_equal 'Api error', body['result']
-    assert_not_nil body['message']
-    body
+    assert resp.header['Content-Type'].include?('text/plain')
+    assert_false resp.body.empty?
+    resp.body
   end
 
 end

@@ -42,7 +42,7 @@ class TranscoderManager < Sinatra::Base
   end
 
   get '/' do
-    "BB Web Broadcast - Transcoder Manager. #{Time.now}"
+    halt 200, {'Content-Type' => 'text/plain'}, "BB Web Broadcast - Transcoder Manager. #{Time.now}"
   end
 
   not_found do
@@ -77,7 +77,7 @@ class TranscoderManager < Sinatra::Base
   def handle_error(status, message)
     e = env['sinatra.error']
     status == 500 ? log_exception(e) : logger.warn(e.message)
-    halt status, {'Content-Type' => 'text/plain'}, "#{message} - #{e.message}\n"
+    halt status, {'Content-Type' => 'text/plain'}, "#{message} - #{e.message}"
   end
 
 end

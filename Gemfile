@@ -10,7 +10,6 @@ gem 'log4r'
 group :development do
   #gem 'awesome_print'
   gem 'shotgun'
-  gem 'yard'
   #gem 'rdiscount'
 end
 
@@ -19,6 +18,7 @@ group :test do
   gem 'test-unit'
   gem 'factory_girl'
   gem 'mocha', require: false
+  gem 'simplecov', require: false
 end
 
 

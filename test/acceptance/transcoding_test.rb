@@ -5,8 +5,9 @@ class TranscodingTest < Test::Unit::TestCase
 
   def test_root
     get '/'
-    body = assert_successful last_response
-    assert body['result'].include? 'BB Web Broadcast - Transcoder Manager'
+    assert_equal 200, last_response.status
+    assert_equal 'text/plain', last_response.header['Content-Type']
+    assert_match /BB Web Broadcast - Transcoder Manager/, last_response.body
   end
 
   def test_start_slot

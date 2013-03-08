@@ -1,12 +1,12 @@
 ENV['RACK_ENV'] = 'test'
 ENV['REDIS_URL'] = 'redis://127.0.0.1:6379/1'
 
+require 'bundler'
 Bundler.setup
 Bundler.require(:test)
 
 require 'test/unit'
 require 'rack/test'
-require 'bundler'
 require 'factory_girl'
 require 'mocha/setup'
 require_relative '../app'
