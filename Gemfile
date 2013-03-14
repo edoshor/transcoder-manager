@@ -19,6 +19,7 @@ group :test do
   gem 'factory_girl'
   gem 'mocha', require: false
   gem 'simplecov', require: false
+  gem 'webmock'
 end
 
 

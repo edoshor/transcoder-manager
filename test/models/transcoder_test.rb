@@ -58,6 +58,29 @@ class TestTranscoder < Test::Unit::TestCase
     assert_equal scheme, transcoder.slots.first.scheme
   end
 
+  def test_load_status
+    transcoder = create(:transcoder)
+
+    stub_request(:get, "#{transcoder.host}:#{transcoder.status_port}")
+    .to_return(status: 200, body: {:'cpu-load' => 23.4, :'temp' =>  61.9}.to_json)
+
+    result = transcoder.load_status
+    assert_equal 23.4, result[:cpu]
+    assert_equal 61.9, result[:temp]
+  end
+
+  def test_load_status_error
+    transcoder = create(:transcoder)
+
+    stub_request(:get, "#{transcoder.host}:#{transcoder.status_port}")
+    .to_return(status: [500, 'Internal Server Error'])
+
+    assert_raise TranscoderError do
+      transcoder.load_status
+    end
+
+  end
+
   private
 
   def transcoder_with_api_mock
