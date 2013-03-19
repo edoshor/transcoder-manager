@@ -6,11 +6,10 @@ gem 'redis'
 gem 'ohm'
 gem 'ohm-contrib'
 gem 'log4r'
+gem 'celluloid'
 
 group :development do
-  #gem 'awesome_print'
   gem 'shotgun'
-  #gem 'rdiscount'
 end
 
 group :test do

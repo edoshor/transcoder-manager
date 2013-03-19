@@ -45,7 +45,7 @@ class TestTranscoder < Test::Unit::TestCase
     api.expects(:mod_get_slot).with(1)
     .returns({error:1, result: {total_tracks: 8, tracks: [0..7]}},
              {error: 1, result: {total_tracks: preset.tracks.size,
-                                 tracks: preset.tracks.map { |t| t.profile_number }}})
+                                 tracks: preset.tracks.map { |t| t.to_a }}})
     .times(2)
 
     assert_equal 0, transcoder.slots.size
@@ -62,11 +62,13 @@ class TestTranscoder < Test::Unit::TestCase
     transcoder = create(:transcoder)
 
     stub_request(:get, "#{transcoder.host}:#{transcoder.status_port}")
-    .to_return(status: 200, body: {:'cpu-load' => 23.4, :'temp' =>  61.9}.to_json)
+    .to_return(status: 200, body: {:'cpuload' => '23.4 %',
+                                   :'cputemp' => [{:'0' => '61.9 C'}, {:'1' => '1.9 C'}]}.to_json)
 
     result = transcoder.load_status
     assert_equal 23.4, result[:cpu]
-    assert_equal 61.9, result[:temp]
+    assert_equal 61.9, result[:temp][0]['0']
+    assert_equal 1.9, result[:temp][1]['1']
   end
 
   def test_load_status_error
@@ -75,7 +77,7 @@ class TestTranscoder < Test::Unit::TestCase
     stub_request(:get, "#{transcoder.host}:#{transcoder.status_port}")
     .to_return(status: [500, 'Internal Server Error'])
 
-    assert_raise TranscoderError do
+    assert_raise Transcoder::TranscoderError do
       transcoder.load_status
     end
 

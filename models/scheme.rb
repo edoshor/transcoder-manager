@@ -74,7 +74,7 @@ class Scheme < Ohm::Model
     results = find(src1_id: src1.id, src2_id: src2.id, preset_id: preset.id)
     unless results.nil? || results.empty?
       results.each do |s|
-        scheme = s if status[:tracks] == s.audio_mappings
+        scheme = s if status[:tracks] == s.audio_mappings.map{|x| x.to_i }
         break unless scheme.nil?
       end
     end

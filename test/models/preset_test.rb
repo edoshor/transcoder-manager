@@ -6,7 +6,7 @@ class TestPreset < Test::Unit::TestCase
   def test_match
     10.times do
       preset = create(:preset)
-      match = Preset.match preset.tracks.map {|t| t.profile_number}
+      match = Preset.match preset.tracks.map {|t| t.to_a}
       assert_equal preset, match
     end
   end

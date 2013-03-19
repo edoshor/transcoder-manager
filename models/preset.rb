@@ -20,7 +20,7 @@ class Preset < Ohm::Model
   def self.match(profiles)
     preset = nil
     Preset.all.each do |p|
-      preset = p if profiles == p.tracks.map {|t| t.profile_number}
+      preset = p if profiles == p.tracks.map {|t| t.to_a}
       break unless preset.nil?
     end
     preset

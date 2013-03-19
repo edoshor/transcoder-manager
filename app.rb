@@ -6,6 +6,7 @@ require 'uri'
 require 'redis'
 require 'json'
 require 'ohm'
+require 'celluloid'
 require 'log4r'
 require 'log4r/yamlconfigurator'
 require 'log4r/outputter/datefileoutputter'
@@ -21,7 +22,12 @@ class TranscoderManager < Sinatra::Base
   # initialize connection to redis
   set :redis_url, ENV['REDIS_URL'] || 'redis://127.0.0.1/0'
   Ohm.connect url: settings.redis_url
+  Ohm.redis.ping
 
+  # initialize monitoring
+  MonitorService.instance.start
+
+  # configure sinatra
   configure do
     set :app_file, __FILE__
     disable :show_exceptions
@@ -41,6 +47,10 @@ class TranscoderManager < Sinatra::Base
     disable :dump_errors
   end
 
+  # Error handlers and general routes
+
+  class ApiError < StandardError; end
+
   get '/' do
     halt 200, {'Content-Type' => 'text/plain'}, "BB Web Broadcast - Transcoder Manager. #{Time.now}"
   end
@@ -57,7 +67,7 @@ class TranscoderManager < Sinatra::Base
     handle_error 400, 'Api error'
   end
 
-  error TranscoderError do
+  error Transcoder::TranscoderError do
     handle_error 400, 'Transcoder error'
   end
 
@@ -81,3 +91,4 @@ class TranscoderManager < Sinatra::Base
   end
 
 end
+

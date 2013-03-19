@@ -1,2 +1,0 @@
-class TranscoderError < StandardError
-end

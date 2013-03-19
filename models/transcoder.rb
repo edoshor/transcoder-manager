@@ -11,11 +11,15 @@ require_relative '../app_config'
 class Transcoder < Ohm::Model
   include Ohm::DataTypes
 
+  class TranscoderError < StandardError; end
+
   attribute :name
   attribute :host
   attribute :port, Type::Integer
   attribute :status_port, Type::Integer
+
   collection :slots, :Slot
+
   unique :name
 
 
@@ -57,7 +61,7 @@ class Transcoder < Ohm::Model
   end
 
   def logger
-    @logger ||= Log4r::Logger['events'] or Log4r::Logger.root
+    @logger ||= Log4r::Logger['events'] or Log4r::Logger['main']
   end
 
   def is_alive?
@@ -115,11 +119,19 @@ class Transcoder < Ohm::Model
   def load_status
     uri = URI.parse("http://#{host}:#{status_port}")
     http = Net::HTTP.new(uri.host, uri.port)
-    request = Net::HTTP::Get.new(uri.request_uri)
-    response = http.request(request)
-    raise TranscoderError, "Load Status Error: #{response.code}, #{response.message}" unless response.code == '200'
-    body = JSON.parse response.body
-    { cpu: body['cpu-load'].to_f, temp: body['temp'].to_f }
+    req = Net::HTTP::Get.new(uri.request_uri)
+    resp = http.request(req)
+    raise TranscoderError, "Load Status Error: #{resp.code}, #{resp.message}" unless resp.code == '200'
+
+    body = JSON.parse resp.body
+    cpuload = body['cpuload'].gsub(/\s|%/, '').to_f
+    cputemp = body['cputemp'].map { |temp|
+      h={}
+      temp.each_pair {|k,v| h[k] = v.gsub(/\s|C/, '').to_f}
+      h
+    }
+
+    { cpu: cpuload, temp: cputemp }
   end
 
   def sync

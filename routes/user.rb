@@ -7,8 +7,11 @@ class TranscoderManager < Sinatra::Base
   end
 
   get '/test-redis' do
-    counter = Ohm.redis.incr 'test'
-    counter.to_json
+    if 'PONG' == Ohm.redis.ping
+      "redis is alive at #{Ohm.conn.options[:url]}"
+    else
+      'redis is dead.'
+    end
   end
 
   # --- Transcoders ---
@@ -24,11 +27,21 @@ class TranscoderManager < Sinatra::Base
     raise ApiError, "Transcoder at #{transcoder.host}:#{transcoder.port} is not responding" \
     unless transcoder.is_alive?
 
-      save_model transcoder
+    if transcoder.valid?
+      transcoder.save
+      MonitorService.instance.add_txcoder transcoder.id
+      transcoder.to_hash.to_json
+    else
+      validation_error transcoder.errors
+    end
   end
 
   delete '/transcoders' do
-    delete_all Transcoder and success
+    Transcoder.all.each do |t|
+      MonitorService.instance.remove_txcoder t.id
+      t.delete
+    end
+    success
   end
 
   get '/transcoders/:id' do
@@ -43,6 +56,7 @@ class TranscoderManager < Sinatra::Base
     transcoder = get_model(params[:id], Transcoder)
     #TODO don't terminate if transcoder is active !
 
+    MonitorService.instance.remove_txcoder transcoder.id
     transcoder.delete
     success
   end
@@ -169,7 +183,7 @@ class TranscoderManager < Sinatra::Base
     success
   end
 
-  get '/transcoders/:id/slots/status' do
+  get '/transcoders/:id/slots/all/status' do
     transcoder = get_model(params[:id], Transcoder)
     status = transcoder.slots.all.map { |slot| prepare_slot_status(transcoder.get_slot_status(slot))}
     status.to_json
@@ -184,7 +198,13 @@ class TranscoderManager < Sinatra::Base
   end
 
   get '/transcoders/:id/status' do
-    raise 'not implemented'
+    t = get_model(params[:id], Transcoder)
+    redirect "http://#{t.host}:#{t.status_port}"
+  end
+
+  get '/transcoders/:id/load-status' do
+    t = get_model(params[:id], Transcoder)
+    t.load_status.to_json
   end
 
   # --- Sources ---
