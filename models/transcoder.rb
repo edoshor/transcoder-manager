@@ -125,11 +125,10 @@ class Transcoder < Ohm::Model
 
     body = JSON.parse resp.body
     cpuload = body['cpuload'].gsub(/\s|%/, '').to_f
-    cputemp = body['cputemp'].map { |temp|
-      h={}
-      temp.each_pair {|k,v| h[k] = v.gsub(/\s|C/, '').to_f}
-      h
-    }
+    cputemp = {}
+    body['cputemp'].each do |core_temp|
+      core_temp.each_pair {|k,v| cputemp[k] = v.gsub(/\s|C/, '').to_f}
+    end
 
     { cpu: cpuload, temp: cputemp }
   end

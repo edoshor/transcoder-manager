@@ -35,11 +35,17 @@ class MonitorService
   def load_status(tx_id, status)
     logger.debug "transcoder #{tx_id} load status is #{status}"
     timestamp = Time.now.to_i
+    key = prefix_key tx_id, "load:#{timestamp}"
+    fields = ['timestamp', timestamp.to_s, 'cpuload', status[:cpu].to_s]
+    status[:temp].each_pair do |k,v|
+      fields << "temp_#{k}" << v.to_s
+    end
+    redis.hmset key, fields
+    redis.lpush prefix_key(tx_id, 'load_status'), key
   end
 
   def get_alive(tx_id)
-    results = redis.sort prefix_key(tx_id, 'states'), by: 'NOSORT', get: %w(*->timestamp *->state)
-    results
+    redis.sort prefix_key(tx_id, 'states'), by: 'NOSORT', get: %w(*->timestamp *->state)
   end
 
   private
