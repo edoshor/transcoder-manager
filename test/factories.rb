@@ -27,13 +27,13 @@ FactoryGirl.define do
   factory :video_track, class: :Track do
     gain 0
     num_channels 0
-    profile_number { 1 + rand(100) }
+    profile_number { rand(1..100) }
   end
 
   factory :audio_track, class: :Track do
-    gain { rand(51) }
-    num_channels { 1 + rand(1) }
-    profile_number { 101 + rand(155) }
+    gain { rand(1..50) }
+    num_channels { rand(1..2) }
+    profile_number { rand(101..255) }
   end
 
   factory :transcoder do

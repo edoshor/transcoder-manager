@@ -26,4 +26,16 @@ class Preset < Ohm::Model
     preset
   end
 
+  def self.match_or_create(profiles)
+    preset = Preset.match profiles
+    if preset.nil?
+      name = "unknown_preset_#{SecureRandom.hex(2)}"
+      preset = Preset.create(name: name)
+      profiles.each do |track_def|
+        preset.tracks.push Track.from_a(track_def).save
+      end
+    end
+    preset
+  end
+
 end

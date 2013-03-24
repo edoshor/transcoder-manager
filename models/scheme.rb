@@ -56,18 +56,16 @@ class Scheme < Ohm::Model
 
   # Try to find a Scheme with the parameters returned from the given
   # low level api results.
+  #
+  # If no match was found we create a new scheme.
+  #
   # @param preset_resp result of mod_get_slot
   # @param status_resp result of mod_get_slot_status
   #
-  def self.match(preset, status)
-    src1 = Source.first_by_address(status[:ip1], status[:port1])
-    src1 or return nil
-
-    src2 = Source.first_by_address(status[:ip2], status[:port2])
-    src2 or return nil
-
-    preset = Preset.match preset[:tracks]
-    preset or return nil
+  def self.match_or_create(preset, status)
+    src1 = Source.match_or_create(status[:ip1], status[:port1])
+    src2 = Source.match_or_create(status[:ip2], status[:port2])
+    preset = Preset.match_or_create preset[:tracks]
 
     scheme = nil
 
@@ -77,6 +75,11 @@ class Scheme < Ohm::Model
         scheme = s if status[:tracks] == s.audio_mappings.map{|x| x.to_i }
         break unless scheme.nil?
       end
+    end
+
+    if scheme.nil?
+      name = "unknown_scheme_#{SecureRandom.hex(2)}"
+      scheme = create(name: name, src1: src1, src2: src2, preset: preset, audio_mappings: status[:tracks])
     end
 
     scheme

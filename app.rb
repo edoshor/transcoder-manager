@@ -25,7 +25,7 @@ class TranscoderManager < Sinatra::Base
   Ohm.redis.ping
 
   # initialize monitoring
-  MonitorService.instance.start
+  MonitorService.instance.start if 'production' == ENV['RACK_ENV']
 
   # configure sinatra
   configure do

@@ -11,13 +11,16 @@ class MonitorService
     logger.debug 'Start monitoring transcoders'
     Celluloid.logger = logger
     @monitor_group = MonitorGroup.run!
+    @started = true
   end
 
   def add_txcoder(tx_id)
-    @monitor_group.add_txcoder tx_id
+    @monitor_group.add_txcoder tx_id if @started
   end
 
   def remove_txcoder(tx_id)
+    return unless @started
+
     @monitor_group.remove_txcoder tx_id
     logger.info "Removing all monitoring history for transcoder #{tx_id}"
     keys = redis.keys "#{tx_namespace(tx_id)}*"

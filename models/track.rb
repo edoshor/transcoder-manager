@@ -45,4 +45,8 @@ class Track < Ohm::Model
     [profile_number, num_channels, gain, 0]
   end
 
+  def self.from_a(track)
+    Track.new profile_number: track[0], num_channels: track[1], gain: track[2]
+  end
+
 end

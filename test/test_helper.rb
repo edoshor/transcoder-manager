@@ -22,14 +22,16 @@ module TestHelper
     TranscoderManager.new
   end
 
+  def setup
+    puts method_name
+  end
+
   def teardown
     Ohm.flush # clear all keys in redis after each test
   end
 
-
   def self.shutdown
     Ohm.flush # clear all keys in redis after tests finished
   end
-
 
 end

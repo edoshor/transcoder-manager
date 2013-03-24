@@ -34,4 +34,13 @@ class Source < Ohm::Model
     (results.nil? || results.empty? ) ? nil : results.first
   end
 
+  def self.match_or_create(host, port)
+    source = first_by_address host, port
+    if source.nil?
+      name = "unknown_source_#{SecureRandom.hex(2)}"
+      source = create(name: name, host: host, port: port)
+    end
+    source
+  end
+
 end

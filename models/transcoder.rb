@@ -142,7 +142,7 @@ class Transcoder < Ohm::Model
       return
     end
 
-    # compare slots count
+    # get slots
     resp = api.mod_get_slots
     if api_error? resp
       logger.error 'api error while getting slots'
@@ -150,6 +150,7 @@ class Transcoder < Ohm::Model
       return
     end
 
+    # compare slots count
     actual_slot_cnt = resp[:result][:slots_cnt]
     if  actual_slot_cnt == slots.size
       logger.info "slots count match. #{actual_slot_cnt} total slots"
@@ -158,7 +159,7 @@ class Transcoder < Ohm::Model
     end
     actual_slots_ids = resp[:result][:slots_ids]
 
-    # remove stale slots configuration
+    # remove stale slots from configuration
     slots.each do |s|
       unless actual_slots_ids.include? s.slot_id
         logger.info "removing slot_id #{s.slot_id} from config. It's not present on transcoder"
@@ -167,50 +168,57 @@ class Transcoder < Ohm::Model
     end
 
     # synchronize actual slots
+    errors = []
     actual_slots_ids.each do |s_id|
       logger.info "synchronizing slot id #{s_id}"
 
-      # lookup slot by slot_id
-      slot = slots.find(slot_id: s_id).first
+      begin
+        # lookup slot in configuration
+        slot = slots.find(slot_id: s_id).first
 
-      # create the slot if necessary
-      if slot.nil?
-        logger.info "slot #{s_id} not in configuration, creating it."
-        slot = Slot.create(slot_id: s_id, transcoder: self)
-      end
+        # create the slot if necessary
+        if slot.nil?
+          logger.info "slot #{s_id} not in configuration, creating it."
+          slot = Slot.create(slot_id: s_id, transcoder: self)
+        end
 
-      # match scheme if running
-      resp = api.mod_slot_get_status(s_id)
-      if api_error? resp
-        logger.error 'api error while getting slot status'
-        logger.error resp
-        next
-      end
-
-      if resp[:message].include? 'stopped'
-        logger.info 'slot is not running, can not match scheme.'
-      else
-        get_slot = api.mod_get_slot(s_id)
-        if api_error? get_slot
+        # get slot definition (preset)
+        slot_def = api.mod_get_slot(s_id)
+        if api_error? slot_def
           logger.error 'api error while getting slot'
-          logger.error get_slot
+          logger.error slot_def
           next
         end
 
-        scheme = Scheme.match get_slot[:result], resp[:result]
-        if scheme.nil?
-          logger.info 'Could not match scheme'
-          logger.debug "get_slot returned: #{get_slot}"
-          logger.debug "status returned: #{resp[:result]}"
+        # match or create preset
+        Preset.match_or_create slot_def[:result][:tracks]
+
+        # get slot status (sources and audio mappings - if running)
+        status = api.mod_slot_get_status(s_id)
+        if api_error? status
+          logger.error 'api error while getting slot status'
+          logger.error status
+          next
+        end
+
+        # match or create scheme if slot is running
+        if status[:message].include? 'stopped'
+          logger.info 'slot is not running, can not match scheme.'
         else
+          scheme = Scheme.match_or_create slot_def[:result], status[:result]
           logger.info "matched scheme is #{scheme.name}"
           slot.update(scheme: scheme)
         end
+      rescue => ex
+        errors << ex
+        logger.error 'unexpected error while synchronizing slot'
+        logger.error ex
+        logger.error ex.backtrace.join("\n")
       end
-
     end
 
-    logger.info 'synchronization completed successfully'
+    logger.info 'synchronization finished'
+    errors
   end
 
   private

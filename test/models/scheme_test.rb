@@ -3,7 +3,7 @@ require_relative '../test_helper'
 class TestScheme < Test::Unit::TestCase
   include TestHelper
 
-  def test_match
+  def test_match_or_create
     10.times do
       scheme = create(:scheme)
 
@@ -15,7 +15,7 @@ class TestScheme < Test::Unit::TestCase
                 tracks: scheme.audio_mappings.to_a
       }
 
-      match = Scheme.match preset, status
+      match = Scheme.match_or_create preset, status
       assert_equal scheme, match
     end
   end
