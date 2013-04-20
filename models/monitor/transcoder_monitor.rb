@@ -10,7 +10,8 @@ class TranscoderMonitor
   LOAD_INTERVAL = 5
   MIN_STATE_CHANGE = 2
 
-  attr_reader :tx_id, :state, :timer
+  attr_reader :tx_id, :timer, :load_timer
+  attr_accessor :state
 
   def initialize(tx_id)
     @tx_id = tx_id
@@ -26,7 +27,6 @@ class TranscoderMonitor
 
     # return immediately if no change in state
     return if @state == is_alive
-
 
     if @state.nil? # just started monitoring ?
       @state = is_alive
