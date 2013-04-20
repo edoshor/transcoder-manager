@@ -7,7 +7,7 @@ class TestScheme < Test::Unit::TestCase
     10.times do
       scheme = create(:scheme)
 
-      preset = {tracks: scheme.preset.tracks.map {|t| t.to_a} }
+      preset = {tracks: scheme.preset.tracks.map { |t| t.to_a } }
       status = {ip1: scheme.src1.host,
                 port1: scheme.src1.port,
                 ip2: scheme.src2.host,

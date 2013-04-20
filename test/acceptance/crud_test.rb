@@ -32,7 +32,7 @@ class CrudTest < Test::Unit::TestCase
   def test_transcoder_get_slots
     get '/transcoders/1/slots'
     body = assert_api_error last_response
-    assert_match /Unknown Transcoder/, body
+    assert_match(/Unknown Transcoder/, body)
 
     transcoder = create(:transcoder)
     get "/transcoders/#{transcoder.id}/slots"
@@ -56,12 +56,12 @@ class CrudTest < Test::Unit::TestCase
   def test_get_slot
     get '/transcoders/1/slots/1'
     body = assert_api_error last_response
-    assert_match /Unknown Transcoder/, body
+    assert_match(/Unknown Transcoder/, body)
 
     transcoder = create(:transcoder)
     get "/transcoders/#{transcoder.id}/slots/1"
     body = assert_api_error last_response
-    assert_match /Unknown slot/, body
+    assert_match(/Unknown slot/, body)
 
     scheme = create(:scheme)
     post "/transcoders/#{transcoder.id}/slots", slot_id: 10, scheme_id: scheme.id
@@ -79,19 +79,19 @@ class CrudTest < Test::Unit::TestCase
   def test_delete_slot
     delete '/transcoders/1/slots/1'
     body = assert_api_error last_response
-    assert_match /Unknown Transcoder/, body
+    assert_match(/Unknown Transcoder/, body)
 
     transcoder = create(:transcoder)
     delete "/transcoders/#{transcoder.id}/slots/1"
     body = assert_api_error last_response
-    assert_match /Unknown slot/, body
+    assert_match(/Unknown slot/, body)
 
     scheme = create(:scheme)
     post "/transcoders/#{transcoder.id}/slots", slot_id: 10, scheme_id: scheme.id
     body = assert_successful last_response
     delete "/transcoders/#{transcoder.id}/slots/#{body['id']}"
     body = assert_successful last_response
-    assert_match /success/, body['result']
+    assert_match(/success/, body['result'])
   end
 
   # --- Sources ---
@@ -131,15 +131,15 @@ class CrudTest < Test::Unit::TestCase
   def test_create_source_validations
     post '/sources', name: 'source3', host: '192.168.2.1'
     body = assert_api_error last_response
-    assert_match /expecting port/, body
+    assert_match(/expecting port/, body)
 
     post '/sources', name: 'source3', port: 3000
     body = assert_api_error last_response
-    assert_match /expecting host/, body
+    assert_match(/expecting host/, body)
 
     post '/sources', host: '192.168.2.1', port: 3000
     body = assert_api_error last_response
-    assert_match /expecting name/, body
+    assert_match(/expecting name/, body)
 
     post '/sources', name: 'source3', host: '192.168.2.1', port: 99999
     body = assert_validation_error last_response
@@ -153,7 +153,7 @@ class CrudTest < Test::Unit::TestCase
   def test_get_source
     get '/sources/1'
     body = assert_api_error last_response
-    assert_match /Unknown Source/, body
+    assert_match(/Unknown Source/, body)
 
     post '/sources', attributes_for(:source)
     source = assert_successful last_response
@@ -165,7 +165,7 @@ class CrudTest < Test::Unit::TestCase
   def test_delete_source
     delete '/sources/1'
     body = assert_api_error last_response
-    assert_match /Unknown Source/, body
+    assert_match(/Unknown Source/, body)
 
     source = create(:source)
     delete "/sources/#{source.id}"
@@ -186,11 +186,11 @@ class CrudTest < Test::Unit::TestCase
     assert_equal '1', preset['id']
     assert_equal atts[:tracks].length, preset['tracks'].length
     assert_equal atts[:name], preset['name']
-    atts[:tracks].each_index { |i|
+    atts[:tracks].each_index do |i|
       assert_equal atts[:tracks][i][:gain], preset['tracks'][i]['gain'].to_i
       assert_equal atts[:tracks][i][:num_channels], preset['tracks'][i]['num_channels'].to_i
       assert_equal atts[:tracks][i][:profile_number], preset['tracks'][i]['profile_number'].to_i
-    }
+    end
   end
 
   # --- Schemes ---

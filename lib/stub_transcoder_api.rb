@@ -83,10 +83,10 @@ class StubTranscoderApi
 
     if RET_OK == error
       if slot[:source].nil?
-        ret[:message] = "Slot is stopped"
+        ret[:message] = 'Slot is stopped'
       else
-        ret[:message] = "Slot is running"
-        ret[:result] = slot.merge({signal: 1+ rand(1), uptime: (Time.now - slot[:source][:start_time]).to_i})
+        ret[:message] = 'Slot is running'
+        ret[:result] = slot.merge({signal: 1 + rand(1), uptime: (Time.now - slot[:source][:start_time]).to_i})
       end
     else
       ret[:message] = get_error(error)
@@ -131,18 +131,18 @@ class StubTranscoderApi
 
   def get_error(error_code, message = nil)
     case error_code
-      when RET_OK
-        'Command completed successfully'
-      when RET_ERROR
-        'Internal error when processing command'
-      when RET_EFORMAT
-        'Bad format of request message'
-      when RET_EVALUE
-        'Bad value of some parameter in request message'
-      when RET_ERES
-        'Not enough resources to create slot'
-      else
-        message
+    when RET_OK
+      'Command completed successfully'
+    when RET_ERROR
+      'Internal error when processing command'
+    when RET_EFORMAT
+      'Bad format of request message'
+    when RET_EVALUE
+      'Bad value of some parameter in request message'
+    when RET_ERES
+      'Not enough resources to create slot'
+    else
+      message
     end
   end
 

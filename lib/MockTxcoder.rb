@@ -20,9 +20,9 @@ t2 = Thread.new do
     client = server.accept
     puts "#{Time.now}: serving load status for client from #{client.peeraddr}"
 
-    result = JSON.generate( { cpuload: '%2.2f %' % (rand * 100),
-        cputemp: [{:'0' => '%2.2f C' % (rand * 100)},
-                  {:'1' => '%2.2f C' % (rand * 100)}]})
+    result = JSON.generate({ cpuload: sprintf('%2.2f %', rand * 100),
+        cputemp: [{:'0' => sprintf('%2.2f C', rand * 100)},
+                  {:'1' => sprintf('%2.2f C', rand * 100)}]})
 
     headers = [
         'HTTP/1.1 200 OK',

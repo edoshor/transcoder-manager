@@ -25,7 +25,7 @@ class TranscoderManager < Sinatra::Base
     result = MonitorService.instance.get_metric params[:tx_id], metric, period
 
     if metric == 'temp'
-      "[#{result.map { |core| "[#{core.join(',')}]" }.join(',')}]"
+      "[#{result.map { |core| "[#{ core.join(',') }]" }.join(',')}]"
     else
       "[#{result.join(',')}]"
     end

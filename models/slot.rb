@@ -12,7 +12,7 @@ class Slot < Ohm::Model
 
   def validate
     assert_numeric :slot_id
-    assert slot_id.between?(0,255), [:slot_id, :not_in_range]
+    assert slot_id.between?(0, 255), [:slot_id, :not_in_range]
     assert_present :transcoder
     #assert_present :scheme # we relax this for sake of synchronization
   end

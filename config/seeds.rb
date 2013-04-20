@@ -23,22 +23,22 @@ end
 
 # Sources
 sources = [
-Source.create(name: 'tv66', host:'192.168.1.2', port: 3000),
-Source.create(name: 'tvrus', host:'192.168.1.2', port: 3001),
-Source.create(name: 'live1', host:'192.168.1.2', port: 3002),
-Source.create(name: 'live2', host:'192.168.1.2', port: 3003)
+Source.create(name: 'tv66', host: '192.168.1.2', port: 3000),
+Source.create(name: 'tvrus', host: '192.168.1.2', port: 3001),
+Source.create(name: 'live1', host: '192.168.1.2', port: 3002),
+Source.create(name: 'live2', host: '192.168.1.2', port: 3003)
 ]
 
 # Presets
 presets = [
-create_preset('preset1', [1,101]),
-create_preset('preset2', [2,102]),
-create_preset('preset3', [3,102]),
-create_preset('preset4', [4,103]),
-create_preset('tv66', [1,101,2,3,102,101,102]),
-create_preset('tvrus', [1,101,2,3,102]),
-create_preset('live1', [1,101,2,3,102,101,102,101,102,101,102,101,102,101,102,101,102]),
-create_preset('live2', [1,101,2,3,102,101,102,101,102,101,102,101,102,101,102])
+create_preset('preset1', [1, 101]),
+create_preset('preset2', [2, 102]),
+create_preset('preset3', [3, 102]),
+create_preset('preset4', [4, 103]),
+create_preset('tv66', [1, 101, 2, 3, 102, 101, 102]),
+create_preset('tvrus', [1, 101, 2, 3, 102]),
+create_preset('live1', [1, 101, 2, 3, 102, 101, 102, 101, 102, 101, 102, 101, 102, 101, 102, 101, 102]),
+create_preset('live2', [1, 101, 2, 3, 102, 101, 102, 101, 102, 101, 102, 101, 102, 101, 102])
 ]
 
 # Schemes
@@ -49,7 +49,7 @@ Scheme.create(name: 'tv66',
               audio_mappings: %w(0 1 0 0 1 2 2))
 
 # transcoders
-Transcoder.create(name: 'transcoder1', host:'10.65.6.101')
-Transcoder.create(name: 'transcoder2', host:'10.65.6.102')
-Transcoder.create(name: 'transcoder3', host:'10.65.6.103')
-Transcoder.create(name: 'transcoder4', host:'10.65.6.104')
+Transcoder.create(name: 'transcoder1', host: '10.65.6.101')
+Transcoder.create(name: 'transcoder2', host: '10.65.6.102')
+Transcoder.create(name: 'transcoder3', host: '10.65.6.103')
+Transcoder.create(name: 'transcoder4', host: '10.65.6.104')

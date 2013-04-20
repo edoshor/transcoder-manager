@@ -1,8 +1,8 @@
 FactoryGirl.define do
 
   factory :source do
-    sequence(:name) {|n| "source#{n}" }
-    sequence(:port) {|n| 3000 + n }
+    sequence(:name) { |n| "source#{n}" }
+    sequence(:port) { |n| 3000 + n }
     host '192.168.2.1'
   end
 
@@ -12,7 +12,7 @@ FactoryGirl.define do
       audio_count 7
     end
 
-    sequence(:name) {|n| "preset#{n}" }
+    sequence(:name) { |n| "preset#{n}" }
 
     after(:create) do |preset, evaluator|
       create_list(:video_track, evaluator.video_count) +
@@ -37,8 +37,8 @@ FactoryGirl.define do
   end
 
   factory :transcoder do
-    sequence(:name) {|n| "transcoder#{n}" }
-    sequence(:host) {|n| "10.65.6.#{n}" }
+    sequence(:name) { |n| "transcoder#{n}" }
+    sequence(:host) { |n| "10.65.6.#{n}" }
     port 10000
     status_port 11000
 
@@ -46,10 +46,10 @@ FactoryGirl.define do
   end
 
   factory :scheme, class: Scheme do
-    sequence(:name) {|n| "scheme#{n}" }
+    sequence(:name) { |n| "scheme#{n}" }
     preset
     association :src1 , factory: :source, strategy: :create
     association :src2 , factory: :source, strategy: :create
-    audio_mappings { preset.tracks.map { |t| rand(preset.tracks.size)} }
+    audio_mappings { preset.tracks.map { |t| rand(preset.tracks.size) } }
   end
 end

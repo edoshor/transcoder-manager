@@ -38,9 +38,9 @@ class Transcoder < Ohm::Model
     assert_present :name
     assert_present :host
     assert_numeric :port
-    assert port.between?(0,65365), [:port, :not_in_range]
+    assert port.between?(0, 65365), [:port, :not_in_range]
     assert_numeric :status_port
-    assert status_port.between?(0,65365), [:status_port, :not_in_range]
+    assert status_port.between?(0, 65365), [:status_port, :not_in_range]
     assert_format :host, Resolv::IPv4::Regex, [:host, :not_valid_ipv4]
   end
 
@@ -73,7 +73,7 @@ class Transcoder < Ohm::Model
   end
 
   def create_slot(slot)
-    tracks = slot.scheme.preset.tracks.map { |t| t.to_a}
+    tracks = slot.scheme.preset.tracks.map { |t| t.to_a }
     resp = raise_if_error api.mod_create_slot(slot.slot_id, 1, tracks.size, tracks)
     log_event "slot #{slot.slot_id} created"
     resp
@@ -132,9 +132,13 @@ class Transcoder < Ohm::Model
     while (counter < 3) && (resp.nil? || !resp.is_a?(Net::HTTPSuccess)) do
       begin
         resp = Net::HTTP.get_response(host, '/', status_port)
-      rescue EOFError
+        unless resp.is_a?(Net::HTTPSuccess)
+          counter += 1
+          logger.debug "txcoder #{id} load status failed #{counter} times: #{ resp }"
+        end
+      rescue EOFError => ex
         counter += 1
-        logger.debug "txcoder #{id} load status failed #{counter} times"
+        logger.debug "txcoder #{id} load status failed #{counter} times: EOFError #{ ex }"
       end
     end
 
@@ -144,7 +148,7 @@ class Transcoder < Ohm::Model
       cpuload = body['cpuload'].gsub(/\s|%/, '').to_f
       cputemp = {}
       body['cputemp'].each do |core_temp|
-        core_temp.each_pair {|k,v| cputemp[k] = v.gsub(/\s|C/, '').to_f}
+        core_temp.each_pair { |k, v| cputemp[k] = v.gsub(/\s|C/, '').to_f }
       end
       { cpu: cpuload, temp: cputemp }
     else

@@ -7,7 +7,7 @@ class TranscodingTest < Test::Unit::TestCase
     get '/'
     assert_equal 200, last_response.status
     assert_equal 'text/plain', last_response.header['Content-Type']
-    assert_match /BB Web Broadcast - Transcoder Manager/, last_response.body
+    assert_match(/BB Web Broadcast - Transcoder Manager/, last_response.body)
   end
 
   def test_start_slot
@@ -28,7 +28,7 @@ class TranscodingTest < Test::Unit::TestCase
     get '/transcoders/1/slots/1/status'
     body = assert_successful last_response
     assert_equal 'success', body['status']
-    assert body['signal'].to_i.between?(1,2)
+    assert body['signal'].to_i.between?(1, 2)
     assert body['uptime'].to_i >= 0
   end
 

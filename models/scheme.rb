@@ -19,7 +19,7 @@ class Scheme < Ohm::Model
     assert_present :src1
 
     track_cnt = preset.tracks.size
-    assert audio_mappings.is_a?(Array) ,[:audio_mappings, :not_array]
+    assert audio_mappings.is_a?(Array), [:audio_mappings, :not_array]
     audio_mappings.each do |e|
       assert e.to_s == e.to_i.to_s, [:audio_mappings, :not_numeric_mapping]
       assert e.to_i.between?(0, track_cnt), [:audio_mappings, :invalid_mapping]
@@ -50,7 +50,7 @@ class Scheme < Ohm::Model
      src2.nil? ? src1.host : src2.host, # ip2
      src2.nil? ? src1.port : src2.port, # port2
      audio_mappings.length, # track_cnt
-     audio_mappings.map {|e| e.to_i}  # tracks
+     audio_mappings.map { |e| e.to_i }  # tracks
     ]
   end
 
@@ -72,7 +72,7 @@ class Scheme < Ohm::Model
     results = find(src1_id: src1.id, src2_id: src2.id, preset_id: preset.id)
     unless results.nil? || results.empty?
       results.each do |s|
-        scheme = s if status[:tracks] == s.audio_mappings.map{|x| x.to_i }
+        scheme = s if status[:tracks] == s.audio_mappings.map { |x| x.to_i }
         break unless scheme.nil?
       end
     end

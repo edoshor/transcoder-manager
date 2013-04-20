@@ -19,7 +19,7 @@ class TestScource < Test::Unit::TestCase
       assert_nil Source.first_by_address(s.host, s.port)
       match = Source.match_or_create(s.host, s.port)
       assert_not_nil match
-      assert_match /unknown_source_[0-9a-f]{4}/, match.name
+      assert_match(/unknown_source_[0-9a-f]{4}/, match.name)
       assert_equal s.host, match.host
       assert_equal s.port, match.port
     end

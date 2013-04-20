@@ -10,4 +10,4 @@ Ohm.redis.ping
 Ohm.flush
 
 # transcoders
-Transcoder.create(name: 'local-mock', host:'127.0.0.1')
+Transcoder.create(name: 'local-mock', host: '127.0.0.1')

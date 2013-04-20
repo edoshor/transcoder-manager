@@ -17,7 +17,7 @@ class Source < Ohm::Model
     assert_present :name
     assert_present :host
     assert_numeric :port
-    assert port.to_i.between?(0,65365), [:port, :not_in_range]
+    assert port.to_i.between?(0, 65365), [:port, :not_in_range]
     assert_format :host, Resolv::IPv4::Regex, [:host, :not_valid_ipv4]
   end
 
@@ -31,7 +31,7 @@ class Source < Ohm::Model
 
   def self.first_by_address(host, port)
     results = Source.find(host: host, port: port)
-    (results.nil? || results.empty? ) ? nil : results.first
+    (results.nil? || results.empty?) ? nil : results.first
   end
 
   def self.match_or_create(host, port)

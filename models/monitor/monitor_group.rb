@@ -8,9 +8,7 @@ class MonitorGroup < Celluloid::SupervisionGroup
   def add_txcoder(tx_id)
     Celluloid::Logger.info "start monitoring transcoder #{tx_id}"
     name = monitor_name tx_id
-    if Celluloid::Actor[name].nil?
-      supervise_as name, TranscoderMonitor, tx_id
-    end
+    supervise_as(name, TranscoderMonitor, tx_id) if Celluloid::Actor[name].nil?
   end
 
   # Stop monitoring transcoder

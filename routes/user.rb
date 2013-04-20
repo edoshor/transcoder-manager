@@ -67,7 +67,7 @@ class TranscoderManager < Sinatra::Base
 
   get '/transcoders/:id/slots' do
     transcoder = get_model(params[:id], Transcoder)
-    transcoder.slots.map { |s| s.to_hash}.to_json
+    transcoder.slots.map { |s| s.to_hash }.to_json
   end
 
   post '/transcoders/:id/slots' do
@@ -189,7 +189,7 @@ class TranscoderManager < Sinatra::Base
 
   get '/transcoders/:id/slots/all/status' do
     transcoder = get_model(params[:id], Transcoder)
-    status = transcoder.slots.all.map { |slot| prepare_slot_status(transcoder.get_slot_status(slot))}
+    status = transcoder.slots.all.map { |slot| prepare_slot_status(transcoder.get_slot_status(slot)) }
     status.to_json
   end
 
@@ -339,7 +339,7 @@ class TranscoderManager < Sinatra::Base
   end
 
   def all_to_json(clazz)
-    clazz.all.map{ |m| m.to_hash }.to_json
+    clazz.all.map { |m| m.to_hash }.to_json
   end
 
   def delete_all(clazz)
@@ -363,10 +363,10 @@ class TranscoderManager < Sinatra::Base
   end
 
   def expect_params(*p_names)
-    p_names.map {|p|
+    p_names.map do |p|
       raise ApiError, "expecting #{p} but didn't get any" if params[p].nil?
       params[p]
-    }
+    end
   end
 
   def prepare_slot_status(resp)

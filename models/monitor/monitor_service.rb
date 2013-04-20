@@ -44,7 +44,7 @@ class MonitorService
 
     # remove all monitoring data from redis
     keys = [prefix_key(tx_id, 'state'), prefix_key(tx_id, 'cpu')]
-    (0..7).to_a.each {|core| keys << prefix_key(tx_id, "temp_#{core}")}
+    (0..7).to_a.each { |core| keys << prefix_key(tx_id, "temp_#{core}") }
     redis.del prefix_key(tx_id, 'state')
   end
 
@@ -76,7 +76,7 @@ class MonitorService
   def load_status(tx_id, status)
     ts = Time.now.to_i
     redis.zadd prefix_key(tx_id, 'cpu'), ts, "[#{ts},#{status[:cpu]}]"
-    status[:temp].each_pair do |k,v|
+    status[:temp].each_pair do |k, v|
       redis.zadd prefix_key(tx_id, "temp_#{k}"), ts, "[#{ts},#{v}]"
     end
   end
@@ -94,10 +94,10 @@ class MonitorService
       %w(cpu state events).each do |metric|
         redis.zremrangebyscore prefix_key(t.id, metric), 0, max
       end
-      (0..7).to_a.map { |core|
+      (0..7).to_a.map do |core|
         key = prefix_key(t.id, "temp_#{core}")
         redis.zremrangebyscore(key, 0, max) if redis.exists(key)
-      }
+      end
     end
   end
 
@@ -107,15 +107,16 @@ class MonitorService
     min = max - period_in_s(period)
 
     case metric
-      when 'cpu', 'state', 'events'
-        redis.zrangebyscore prefix_key(tx_id, metric), min, max
-      when 'temp'
-        (0..7).to_a.map { |core|
-         key = prefix_key(tx_id, "temp_#{core}")
-         redis.zrangebyscore(key, min, max) if redis.exists(key)
-        }.delete_if {|x| x.nil? }
-      else
-        raise "unknown metric #{metric}"
+    when 'cpu', 'state', 'events'
+      redis.zrangebyscore prefix_key(tx_id, metric), min, max
+    when 'temp'
+      (0..7).to_a.map do |core|
+        key = prefix_key(tx_id, "temp_#{core}")
+        redis.zrangebyscore(key, min, max) if redis.exists(key)
+      end
+      .delete_if { |x| x.nil? }
+    else
+      raise "unknown metric #{metric}"
     end
 
   end
@@ -134,16 +135,16 @@ class MonitorService
 
   def period_in_s(period)
     case period
-      when 'week'
-        WEEK_IN_S
-      when 'day'
-        DAY_IN_S
-      when 'hour'
-        HOUR_IN_S
-      when '10_minutes'
-        TEN_MINUTES_IN_S
-      else
-        raise "unknown period #{period}"
+    when 'week'
+      WEEK_IN_S
+    when 'day'
+      DAY_IN_S
+    when 'hour'
+      HOUR_IN_S
+    when '10_minutes'
+      TEN_MINUTES_IN_S
+    else
+      raise "unknown period #{period}"
     end
   end
 
