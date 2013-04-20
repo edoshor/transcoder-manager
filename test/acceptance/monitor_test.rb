@@ -16,12 +16,12 @@ class MonitorTest < Test::Unit::TestCase
     get '/monitor/1/cpu'
     body = assert_successful last_response
     assert_not_empty body
-    assert body.length.between?(358, 360)
+    assert body.length.between?(350, 360)
 
     get '/monitor/1/cpu?period=10_minutes'
     body = assert_successful last_response
     assert_not_empty body
-    assert body.length.between?(58, 60)
+    assert body.length.between?(50, 60)
 
     get '/monitor/1/cpu?period=day'
     body = assert_successful last_response
@@ -31,7 +31,8 @@ class MonitorTest < Test::Unit::TestCase
     get '/monitor/1/temp?period=10_minutes'
     body = assert_successful last_response
     assert_not_empty body
-    assert body.length.between?(58, 60)
+    assert_equal 2, body.length
+    body.each { |series| assert series.length.between?(50, 60) }
   end
 
 end

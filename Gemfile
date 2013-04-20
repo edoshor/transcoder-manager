@@ -19,6 +19,7 @@ group :test do
   gem 'mocha', require: false
   gem 'simplecov', require: false
   gem 'webmock'
+  gem 'coveralls', require: false
 end
 
 

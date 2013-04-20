@@ -6,6 +6,8 @@ $LOAD_PATH.unshift(lib_dir)
 
 require 'test/unit'
 require 'simplecov'
+require 'coveralls'
 SimpleCov.start
+Coveralls.wear!
 
 exit Test::Unit::AutoRunner.run(true, test_dir)
