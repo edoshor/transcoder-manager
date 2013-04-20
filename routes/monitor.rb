@@ -6,10 +6,29 @@ class TranscoderManager < Sinatra::Base
     content_type :json
   end
 
-  get '/monitor/:id/alive' do
-    result = MonitorService.instance.get_alive @params[:id]
-    f = result.map { |res| [Time.at(res[0].to_i), 'true' == res[1]] }
-    f.to_json
+  get '/monitor/start' do
+    MonitorService.instance.start and 'success'
+  end
+
+  get '/monitor/shutdown' do
+    MonitorService.instance.shutdown and 'success'
+  end
+
+  get '/monitor/:tx_id/:metric' do
+    metric = params[:metric]
+    raise ApiError, "Unknown metric: #{metric}" unless %w(cpu temp state events).include? metric
+
+    period = params[:period]
+    period = 'hour' if period.nil? # default period
+    raise ApiError, "Unknown period: #{period}" unless %w(week day hour 10_minutes).include? period
+
+    result = MonitorService.instance.get_metric params[:tx_id], metric, period
+
+    if metric == 'temp'
+      "[#{result.map { |core| "[#{core.join(',')}]" }.join(',')}]"
+    else
+      "[#{result.join(',')}]"
+    end
   end
 
 

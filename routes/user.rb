@@ -4,6 +4,10 @@ class TranscoderManager < Sinatra::Base
 
   before do
     content_type :json
+    headers \
+     'Access-Control-Allow-Origin' => '*',
+     'Access-Control-Allow-Methods' => 'POST, GET, OPTIONS',
+     'Access-Control-Allow-Headers' => 'Content-Type'
   end
 
   get '/test-redis' do

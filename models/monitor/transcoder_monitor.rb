@@ -6,8 +6,8 @@ class TranscoderMonitor
   include Celluloid
   include Celluloid::Logger
 
-  ALIVE_INTERVAL = 5
-  LOAD_INTERVAL = 15
+  ALIVE_INTERVAL = 3
+  LOAD_INTERVAL = 5
   MIN_STATE_CHANGE = 2
 
   attr_reader :tx_id, :state, :timer
@@ -23,23 +23,32 @@ class TranscoderMonitor
 
   def check_is_alive
     is_alive = Transcoder[@tx_id].is_alive?
-    if @state.nil? || @state == is_alive
+
+    # return immediately if no change in state
+    return if @state == is_alive
+
+
+    if @state.nil? # just started monitoring ?
       @state = is_alive
+      MonitorService.instance.wakeup_state @tx_id, @state
     else
       @change_count -= 1
-      if @change_count == 0
+      if @change_count == 0 # did we reach stability barrier ?
         @state = is_alive
         @change_count = MIN_STATE_CHANGE
         MonitorService.instance.state_changed @tx_id, @state
       end
     end
+
   end
 
   def sample_load_status
+    # avoid sample if we know transcoder is dead.
     return unless @state
 
     begin
-      MonitorService.instance.load_status @tx_id, Transcoder[@tx_id].load_status
+      load_status = Transcoder[@tx_id].load_status
+      MonitorService.instance.load_status @tx_id, load_status
     rescue => ex
       warn format_exception ex
     end

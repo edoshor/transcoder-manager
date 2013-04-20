@@ -7,6 +7,7 @@ require 'uri'
 require_relative '../lib/transcoder_api'
 require_relative '../lib/stub_transcoder_api'
 require_relative '../app_config'
+require_relative 'monitor/monitor_service'
 
 class Transcoder < Ohm::Model
   include Ohm::DataTypes
@@ -21,7 +22,6 @@ class Transcoder < Ohm::Model
   collection :slots, :Slot
 
   unique :name
-
 
   # Determine which api class to use based on environment
   def self.api_class
@@ -61,7 +61,7 @@ class Transcoder < Ohm::Model
   end
 
   def logger
-    @logger ||= Log4r::Logger['events'] or Log4r::Logger['main']
+    @logger ||= Log4r::Logger['main']
   end
 
   def is_alive?
@@ -69,16 +69,20 @@ class Transcoder < Ohm::Model
   end
 
   def slot_taken?(slot_id)
-    not slots[slot_id].nil?
+    !slots[slot_id].nil?
   end
 
   def create_slot(slot)
     tracks = slot.scheme.preset.tracks.map { |t| t.to_a}
-    raise_if_error api.mod_create_slot(slot.slot_id, 1, tracks.size, tracks)
+    resp = raise_if_error api.mod_create_slot(slot.slot_id, 1, tracks.size, tracks)
+    log_event "slot #{slot.slot_id} created"
+    resp
   end
 
   def delete_slot(slot)
-    raise_if_error api.mod_remove_slot(slot.slot_id)
+    resp = raise_if_error api.mod_remove_slot(slot.slot_id)
+    log_event "slot #{slot.slot_id} removed"
+    resp
   end
 
   def get_slot(slot)
@@ -92,12 +96,15 @@ class Transcoder < Ohm::Model
 
   def start_slot(slot)
     ip1, port1, ip2, port2, tracks_cnt, tracks = slot.scheme.to_start_args
-    result = api.mod_slot_restart(slot.slot_id, ip1, port1, ip2, port2, tracks_cnt, tracks)
-    raise_if_error result
+    resp = raise_if_error api.mod_slot_restart(slot.slot_id, ip1, port1, ip2, port2, tracks_cnt, tracks)
+    log_event "slot #{slot.slot_id} started"
+    resp
   end
 
   def stop_slot(slot)
-    raise_if_error api.mod_slot_stop(slot.slot_id)
+    resp = raise_if_error api.mod_slot_stop(slot.slot_id)
+    log_event "slot #{slot.slot_id} stopped"
+    resp
   end
 
   def save_config
@@ -105,7 +112,9 @@ class Transcoder < Ohm::Model
   end
 
   def restart
-    raise_if_error api.mod_restart
+    resp = raise_if_error api.mod_restart
+    log_event 'restart'
+    resp
   end
 
   def get_net_config
@@ -117,20 +126,31 @@ class Transcoder < Ohm::Model
   end
 
   def load_status
-    uri = URI.parse("http://#{host}:#{status_port}")
-    http = Net::HTTP.new(uri.host, uri.port)
-    req = Net::HTTP::Get.new(uri.request_uri)
-    resp = http.request(req)
-    raise TranscoderError, "Load Status Error: #{resp.code}, #{resp.message}" unless resp.code == '200'
-
-    body = JSON.parse resp.body
-    cpuload = body['cpuload'].gsub(/\s|%/, '').to_f
-    cputemp = {}
-    body['cputemp'].each do |core_temp|
-      core_temp.each_pair {|k,v| cputemp[k] = v.gsub(/\s|C/, '').to_f}
+    # call transcoder (retry connection max 3 times)
+    counter = 0
+    resp = nil
+    while (counter < 3) && (resp.nil? || !resp.is_a?(Net::HTTPSuccess)) do
+      begin
+        resp = Net::HTTP.get_response(host, '/', status_port)
+      rescue EOFError
+        counter += 1
+        logger.debug "txcoder #{id} load status failed #{counter} times"
+      end
     end
 
-    { cpu: cpuload, temp: cputemp }
+    # handle server response
+    if resp.is_a?(Net::HTTPSuccess)
+      body = JSON.parse resp.body
+      cpuload = body['cpuload'].gsub(/\s|%/, '').to_f
+      cputemp = {}
+      body['cputemp'].each do |core_temp|
+        core_temp.each_pair {|k,v| cputemp[k] = v.gsub(/\s|C/, '').to_f}
+      end
+      { cpu: cpuload, temp: cputemp }
+    else
+      msg = resp.nil?  ? 'Max number of errors occurred' : "Load Status Error: #{resp.code}, #{resp.message}"
+      raise TranscoderError, msg
+    end
   end
 
   def sync
@@ -158,6 +178,7 @@ class Transcoder < Ohm::Model
       logger.warn "slots count mismatch. #{actual_slot_cnt} actual slots, #{slots.size} in configuration."
     end
     actual_slots_ids = resp[:result][:slots_ids]
+    actual_slots_ids ||= []
 
     # remove stale slots from configuration
     slots.each do |s|
@@ -191,7 +212,7 @@ class Transcoder < Ohm::Model
         end
 
         # match or create preset
-        Preset.match_or_create slot_def[:result][:tracks]
+        actual_preset = Preset.match_or_create slot_def[:result][:tracks]
 
         # get slot status (sources and audio mappings - if running)
         status = api.mod_slot_get_status(s_id)
@@ -203,7 +224,8 @@ class Transcoder < Ohm::Model
 
         # match or create scheme if slot is running
         if status[:message].include? 'stopped'
-          logger.info 'slot is not running, can not match scheme.'
+          logger.info 'slot is stopped, can not match scheme.'
+          logger.info "preset match configuration ? #{actual_preset.eql?(slot.scheme.preset)}" unless slot.scheme.nil?
         else
           scheme = Scheme.match_or_create slot_def[:result], status[:result]
           logger.info "matched scheme is #{scheme.name}"
@@ -218,6 +240,7 @@ class Transcoder < Ohm::Model
     end
 
     logger.info 'synchronization finished'
+    log_event 'configuration synchronized'
     errors
   end
 
@@ -228,6 +251,11 @@ class Transcoder < Ohm::Model
     raise TranscoderError, "Error code: #{resp[:error]}. Message: #{resp[:message]}" \
     if api_error? resp
     resp
+  end
+
+  def log_event(event)
+    MonitorService.instance.log_event id, event
+    logger.info "Transcoder #{id} event: #{event}"
   end
 
   def api_error? (resp)

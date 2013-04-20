@@ -21,7 +21,7 @@ class Scheme < Ohm::Model
     track_cnt = preset.tracks.size
     assert audio_mappings.is_a?(Array) ,[:audio_mappings, :not_array]
     audio_mappings.each do |e|
-      assert e == e.to_i.to_s, [:audio_mappings, :not_numeric_mapping]
+      assert e.to_s == e.to_i.to_s, [:audio_mappings, :not_numeric_mapping]
       assert e.to_i.between?(0, track_cnt), [:audio_mappings, :invalid_mapping]
     end
     assert audio_mappings.length >= track_cnt, [:audio_mappings, :less_than_preset_tracks]
