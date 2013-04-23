@@ -7,6 +7,7 @@ gem 'ohm'
 gem 'ohm-contrib'
 gem 'log4r'
 gem 'celluloid'
+gem 'mail'
 
 group :development do
   gem 'shotgun'

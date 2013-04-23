@@ -1,6 +1,7 @@
 require 'ohm'
 require 'singleton'
 require 'log4r'
+require 'mail'
 require_relative 'monitor_group'
 require_relative 'history_cleaner'
 require_relative '../transcoder'
@@ -51,6 +52,14 @@ class MonitorService
   # Transcoder state is changed
   def state_changed(tx_id, state)
     record_state(tx_id, state)
+
+    subject = "#{ state ? 'UP' : 'DOWN' } Alert: #{Transcoder[tx_id].name}"
+    Mail.deliver do
+      from    'noreply.shidur@kbb1.com'
+      to      'edoshor@gmail.com'
+      subject subject
+      body    'transcoder state changed'
+    end
   end
 
   # First time we know the transcoder state

@@ -1,3 +1,4 @@
+require 'mail'
 require_relative '../app_config'
 
 class TranscoderManager < Sinatra::Base
@@ -31,5 +32,15 @@ class TranscoderManager < Sinatra::Base
     end
   end
 
+
+  get '/monitor/test-email' do
+    to = params[:to]
+    Mail.deliver do
+      from    'noreply.shidur@kbb1.com'
+      to      to
+      subject 'test email'
+      body    'test 1 2 3'
+    end
+  end
 
 end
