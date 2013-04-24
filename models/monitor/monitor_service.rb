@@ -56,7 +56,7 @@ class MonitorService
     subject = "#{ state ? 'UP' : 'DOWN' } Alert: #{Transcoder[tx_id].name}"
     Mail.deliver do
       from    'noreply.shidur@kbb1.com'
-      to      'edoshor@gmail.com'
+      to      'shidur@kbb1.com'
       subject subject
       body    'transcoder state changed'
     end
