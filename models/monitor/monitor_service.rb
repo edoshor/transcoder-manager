@@ -35,11 +35,13 @@ class MonitorService
 
   # Monitor a new transcoder
   def add_txcoder(tx_id)
-    @monitor_group.add_txcoder tx_id if @started
+    @started and @monitor_group.add_txcoder tx_id
   end
 
   # Stop monitoring transcoder and remove all its history.
   def remove_txcoder(tx_id)
+    @started or return
+
     # stop actor
     @monitor_group.remove_txcoder tx_id
 

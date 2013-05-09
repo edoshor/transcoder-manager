@@ -28,8 +28,7 @@ class TranscoderManager < Sinatra::Base
     name, host = expect_params 'name', 'host'
     transcoder = Transcoder.new(name: name, host: host, port: params['port'], status_port: params['status_port'])
 
-    raise ApiError, "Transcoder at #{transcoder.host}:#{transcoder.port} is not responding" \
-    unless transcoder.is_alive?
+    transcoder.is_alive? or raise ApiError, "Transcoder at #{transcoder.host}:#{transcoder.port} is not responding"
 
     if transcoder.valid?
       transcoder.save
@@ -374,11 +373,23 @@ class TranscoderManager < Sinatra::Base
       if resp[:message].include? 'stop'
         { status: 'success', running: false }
       else
-        { status: 'success', running: true, signal: resp[:result][:signal], uptime: resp[:result][:uptime] }
+        { status: 'success',
+          running: true,
+          signal: resp[:result][:signal],
+          uptime: format_duration(resp[:result][:uptime]) }
       end
     else
       { status: 'error', type: resp[:error], message: resp[:message]}
     end
+  end
+
+  def format_duration(secs)
+    mins  = secs / 60
+    hours = mins / 60
+    days  = hours / 24
+
+    time_in_day = format('%02d:%02d:%02d', hours % 24, mins % 60, secs % 60)
+    days > 0 ? "#{days} days #{time_in_day}" : time_in_day
   end
 
 end
