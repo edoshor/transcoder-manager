@@ -21,7 +21,7 @@ class TranscoderManager < Sinatra::Base
 
   # initialize connection to redis
   set :redis_url, ENV['REDIS_URL'] || 'redis://127.0.0.1/0'
-  Ohm.connect url: settings.redis_url
+  Ohm.connect url: settings.redis_url, driver: :hiredis
   Ohm.redis.ping
 
   # initialize monitoring
