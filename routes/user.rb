@@ -95,6 +95,8 @@ class TranscoderManager < Sinatra::Base
   end
 
   get '/transcoders/:id/slots/:id' do |tid, sid|
+    pass unless sid =~ /\d+/  # pass non numeric ids
+
     transcoder = get_model(tid, Transcoder)
     slot = transcoder.slots[sid]
     raise ApiError, "Unknown slot with id #{sid}" if slot.nil?
@@ -155,7 +157,7 @@ class TranscoderManager < Sinatra::Base
 
   get '/transcoders/:id/slots/start' do
     transcoder = get_model(params[:id], Transcoder)
-    transcoder.slots.all.each do |slot|
+    transcoder.slots.each do |slot|
       transcoder.start_slot slot unless slot.scheme.nil?
     end
     success
@@ -163,10 +165,18 @@ class TranscoderManager < Sinatra::Base
 
   get '/transcoders/:id/slots/stop' do
     transcoder = get_model(params[:id], Transcoder)
-    transcoder.slots.all.each do |slot|
+    transcoder.slots.each do |slot|
       transcoder.stop_slot slot
     end
     success
+  end
+
+  get '/transcoders/:id/slots/status' do
+    transcoder = get_model(params[:id], Transcoder)
+    status = transcoder.slots.map do |slot|
+      prepare_slot_status(transcoder.get_slot_status(slot)).merge({slot_id: slot.slot_id})
+    end
+    status.to_json
   end
 
   get '/transcoders/:id/slots/:id/start' do |tid, sid|
@@ -184,12 +194,6 @@ class TranscoderManager < Sinatra::Base
     raise ApiError, "Unknown slot with id #{sid}" if slot.nil?
     transcoder.stop_slot slot
     success
-  end
-
-  get '/transcoders/:id/slots/all/status' do
-    transcoder = get_model(params[:id], Transcoder)
-    status = transcoder.slots.all.map { |slot| prepare_slot_status(transcoder.get_slot_status(slot)) }
-    status.to_json
   end
 
   get '/transcoders/:id/slots/:id/status' do |tid, sid|

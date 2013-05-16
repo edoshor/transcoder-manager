@@ -69,7 +69,7 @@ class Transcoder < Ohm::Model
   end
 
   def slot_taken?(slot_id)
-    !slots[slot_id].nil?
+    !slots.find(slot_id: slot_id).empty?
   end
 
   def create_slot(slot)

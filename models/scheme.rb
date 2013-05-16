@@ -41,7 +41,7 @@ class Scheme < Ohm::Model
 
   def to_s
     "Scheme: name=#{name}, preset=#{preset.name}, src1=#{src1.name},
-      src2=#{(src2.nil? ? nil : src2.name)}"
+      src2=#{(src2 ? src2.name : nil)}"
   end
 
   def to_start_args
