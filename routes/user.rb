@@ -174,7 +174,7 @@ class TranscoderManager < Sinatra::Base
   get '/transcoders/:id/slots/status' do
     transcoder = get_model(params[:id], Transcoder)
     status = transcoder.slots.map do |slot|
-      prepare_slot_status(transcoder.get_slot_status(slot)).merge({slot_id: slot.slot_id})
+      prepare_slot_status(transcoder.get_slot_status(slot)).merge({id: slot.id, slot_id: slot.slot_id})
     end
     status.to_json
   end
