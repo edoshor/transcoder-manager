@@ -34,8 +34,8 @@ class Scheme < Ohm::Model
                 preset_name: preset.name,
                 src1_id: src1.id,
                 src1_name: src1.name,
-                src2_id: (src2.nil? ? nil : src2.id),
-                src2_name: (src2.nil? ? nil : src2.name)
+                src2_id: (src2 ? src2.id : nil),
+                src2_name: (src2 ? src2.name : nil)
     )
   end
 
@@ -47,8 +47,8 @@ class Scheme < Ohm::Model
   def to_start_args
     [src1.host, # ip1
      src1.port, # port1
-     src2.nil? ? src1.host : src2.host, # ip2
-     src2.nil? ? src1.port : src2.port, # port2
+     src2 ? src2.host : src1.host, # ip2
+     src2 ? src2.port : src1.port, # port2
      audio_mappings.length, # track_cnt
      audio_mappings.map { |e| e.to_i }  # tracks
     ]
@@ -67,21 +67,14 @@ class Scheme < Ohm::Model
     src2 = Source.match_or_create(status[:ip2], status[:port2])
     preset = Preset.match_or_create preset[:tracks]
 
-    scheme = nil
-
     results = find(src1_id: src1.id, src2_id: src2.id, preset_id: preset.id)
-    unless results.nil? || results.empty?
-      results.each do |s|
-        scheme = s if status[:tracks] == s.audio_mappings.map { |x| x.to_i }
-        break unless scheme.nil?
-      end
-    end
+    scheme = results ? results.detect { |s| status[:tracks] == s.audio_mappings.map { |x| x.to_i } } : nil
 
-    if scheme.nil?
-      name = "unknown_scheme_#{SecureRandom.hex(2)}"
-      scheme = create(name: name, src1: src1, src2: src2, preset: preset, audio_mappings: status[:tracks])
+    if scheme
+      scheme
+    else
+      create(name: "unknown_scheme_#{SecureRandom.hex(2)}",
+             src1: src1, src2: src2, preset: preset, audio_mappings: status[:tracks])
     end
-
-    scheme
   end
 end

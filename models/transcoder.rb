@@ -2,8 +2,6 @@ require 'ohm'
 require 'ohm/datatypes'
 require 'resolv'
 require 'log4r'
-require 'net/http'
-require 'uri'
 require_relative '../lib/transcoder_api'
 require_relative '../lib/stub_transcoder_api'
 require_relative '../app_config'
@@ -29,8 +27,8 @@ class Transcoder < Ohm::Model
   end
 
   def initialize(atts)
-    atts[:port] = DEFAULT_PORT if atts[:port].nil?
-    atts[:status_port] = DEFAULT_STATUS_PORT if atts[:status_port].nil?
+    atts[:port] = DEFAULT_PORT unless atts[:port]
+    atts[:status_port] = DEFAULT_STATUS_PORT unless atts[:status_port]
     super
   end
 
@@ -74,87 +72,43 @@ class Transcoder < Ohm::Model
 
   def create_slot(slot)
     tracks = slot.scheme.preset.tracks.map { |t| t.to_a }
-    resp = raise_if_error api.mod_create_slot(slot.slot_id, 1, tracks.size, tracks)
-    log_event "slot #{slot.slot_id} created"
-    resp
+    call_api :mod_create_slot, slot.slot_id, 1, tracks.size, tracks
   end
 
   def delete_slot(slot)
-    resp = raise_if_error api.mod_remove_slot(slot.slot_id)
-    log_event "slot #{slot.slot_id} removed"
-    resp
+    call_api :mod_remove_slot, slot.slot_id
   end
 
   def get_slot(slot)
-    resp = raise_if_error api.mod_get_slot(slot.slot_id)
-    resp[:result]
+    call_api(:mod_get_slot, slot.slot_id) { |resp| resp[:result] }
   end
 
   def get_slot_status(slot)
-    raise_if_error api.mod_slot_get_status(slot.slot_id)
+    call_api :mod_slot_get_status, slot.slot_id
   end
 
   def start_slot(slot)
-    ip1, port1, ip2, port2, tracks_cnt, tracks = slot.scheme.to_start_args
-    resp = raise_if_error api.mod_slot_restart(slot.slot_id, ip1, port1, ip2, port2, tracks_cnt, tracks)
-    log_event "slot #{slot.slot_id} started"
-    resp
+    call_api :mod_slot_restart, slot.slot_id, *slot.scheme.to_start_args
   end
 
   def stop_slot(slot)
-    resp = raise_if_error api.mod_slot_stop(slot.slot_id)
-    log_event "slot #{slot.slot_id} stopped"
-    resp
+    call_api :mod_slot_stop, slot.slot_id
   end
 
   def save_config
-    raise_if_error api.mod_save_config
+    call_api :mod_save_config
   end
 
   def restart
-    resp = raise_if_error api.mod_restart
-    log_event 'restart'
-    resp
+    call_api :mod_restart
   end
 
   def get_net_config
-    raise_if_error api.mod_get_net_config
+    call_api :mod_get_net_config
   end
 
   def set_net_config
     raise 'not implemented'
-  end
-
-  def load_status
-    # call transcoder (retry connection max 3 times)
-    counter = 0
-    resp = nil
-    while (counter < 3) && (resp.nil? || !resp.is_a?(Net::HTTPSuccess)) do
-      begin
-        resp = Net::HTTP.get_response(host, '/', status_port)
-        unless resp.is_a?(Net::HTTPSuccess)
-          counter += 1
-          logger.debug "txcoder #{id} load status failed #{counter} times: #{ resp }"
-        end
-      rescue EOFError => ex
-        counter += 1
-        logger.debug "txcoder #{id} load status failed #{counter} times: EOFError #{ ex }"
-      end
-    end
-
-    # handle server response
-    if resp.is_a?(Net::HTTPSuccess)
-      body = JSON.parse resp.body
-      cpuload = body['cpuload'].gsub(/\s|%/, '').to_f
-      cputemp = {}
-      body['cputemp'].each do |core_temp|
-        core_temp.each_pair { |k, v| cputemp[k] = v.gsub(/\s|C/, '').to_f }
-      end
-      { cpu: cpuload, temp: cputemp }
-    else
-      msg = resp.nil?  ? 'Max number of errors occurred' : "Load Status Error: #{resp.code}, #{resp.message}"
-      raise TranscoderError, msg
-    end
   end
 
   def sync
@@ -244,26 +198,48 @@ class Transcoder < Ohm::Model
     end
 
     logger.info 'synchronization finished'
-    log_event 'configuration synchronized'
+    log_event :sync
     errors
   end
 
   private
 
-  # Raise an error if api returned error
-  def raise_if_error(resp)
-    raise TranscoderError, "Error code: #{resp[:error]}. Message: #{resp[:message]}" \
-    if api_error? resp
-    resp
+  def call_api(method, *args)
+    resp = api.send(method, *args)
+    if api_success? resp
+      log_event(method, *args)
+      block_given? ? yield(resp) : resp
+    else
+      raise TranscoderError, "Error code: #{resp[:error]}. Message: #{resp[:message]}"
+    end
   end
 
-  def log_event(event)
-    MonitorService.instance.log_event id, event
-    logger.info "Transcoder #{id} event: #{event}"
+  def api_success? (resp)
+    resp and resp[:error] == TranscoderApi::RET_OK
   end
 
   def api_error? (resp)
-    resp.nil? || resp[:error] != TranscoderApi::RET_OK
+    not api_success? resp
+  end
+
+  def log_event(method, *args)
+    msg = event_message(method, *args)
+    if msg
+      MonitorService.instance.log_event id, msg
+      logger.info "Transcoder #{id} event: #{msg}"
+    end
+  end
+
+  def event_message(api_method, *args)
+    case api_method
+      when :create_slot then "slot #{args[0]} created"
+      when :delete_slot then "slot #{args[0]} removed"
+      when :start_slot then "started slot #{args[0]}"
+      when :stop_slot then "stopped slot #{args[0]}"
+      when :restart then 'restart'
+      when :sync then 'configuration synchronized'
+      else nil
+    end
   end
 
 end

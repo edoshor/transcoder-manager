@@ -1,4 +1,5 @@
 require 'celluloid'
+require 'net/http'
 require_relative 'monitor_service'
 require_relative '../transcoder'
 
@@ -24,11 +25,9 @@ class TranscoderMonitor
 
   def check_is_alive
     is_alive = Transcoder[@tx_id].is_alive?
+    return if @state == is_alive # no change
 
-    # return immediately if no change in state
-    return if @state == is_alive
-
-    if @state.nil? # just started monitoring ?
+    if @state.nil? # first time monitoring ?
       @state = is_alive
       MonitorService.instance.wakeup_state @tx_id, @state
     else
@@ -43,15 +42,43 @@ class TranscoderMonitor
   end
 
   def sample_load_status
-    # avoid sample if we know transcoder is dead.
     return unless @state
 
     begin
-      load_status = Transcoder[@tx_id].load_status
-      MonitorService.instance.load_status @tx_id, load_status
+      resp = get_load_status
+      if resp.is_a? Net::HTTPSuccess
+        MonitorService.instance.load_status @tx_id, parse_response(resp)
+      else
+        warn resp ? "Load Status Error: #{resp.code}, #{resp.message}" : 'Max number of errors occurred'
+      end
     rescue => ex
       warn format_exception ex
     end
+  end
+
+  def get_load_status(trials = 3)
+    resp = nil
+    txcoder = Transcoder[@tx_id]
+    until resp.is_a?(Net::HTTPSuccess) or trials == 0 do
+      begin
+        resp = Net::HTTP.get_response(txcoder.host, '/', txcoder.status_port)
+        unless resp.is_a? Net::HTTPSuccess
+          trials -= 1 and debug "txcoder #{@tx_id} load status failed: #{resp}"
+        end
+      rescue EOFError => ex
+        trials -= 1 and debug "txcoder #{@tx_id} load status EOFError: #{ex}"
+      end
+    end
+    resp
+  end
+
+  def parse_response(resp)
+    body = JSON.parse resp.body
+    {cpu:  body['cpuload'].gsub(/\s|%/, '').to_f,
+     temp: body['cputemp'].inject({}) do |h, core_temp|
+        h.merge! Hash[core_temp.map { |k,v| [k, v.gsub(/\s|C/, '').to_f] }]
+     end
+    }
   end
 
 end

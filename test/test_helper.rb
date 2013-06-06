@@ -18,6 +18,10 @@ require_relative 'factories'
 module TestHelper
   include FactoryGirl::Syntax::Methods
 
+  Mail.defaults do
+    delivery_method :test
+  end
+
   def app
     TranscoderManager.new
   end

@@ -32,9 +32,10 @@ class Track < Ohm::Model
   end
 
   def to_hash
-    super.merge(gain: gain,
-                num_channels: num_channels,
-                profile_number: profile_number)
+    super.merge(
+        gain: gain,
+        num_channels: num_channels,
+        profile_number: profile_number)
   end
 
   def to_s

@@ -9,7 +9,7 @@ class HistoryCleaner
   attr_reader :timer
 
   def initialize
-    @timer = every(CLEAN_INTERVAL) { MonitorService.instance.clean_history }
+    @timer = every(CLEAN_INTERVAL) { MonitorService.instance.clean_history_period }
   end
 
 end

@@ -18,23 +18,18 @@ class Preset < Ohm::Model
   end
 
   def self.match(profiles)
-    preset = nil
-    Preset.all.each do |p|
-      preset = p if profiles == p.tracks.map { |t| t.to_a }
-      break unless preset.nil?
-    end
-    preset
+    Preset.all.detect { |p| profiles == p.tracks.map { |t| t.to_a } }
   end
 
   def self.match_or_create(profiles)
-    preset = Preset.match profiles
-    if preset.nil?
-      name = "unknown_preset_#{SecureRandom.hex(2)}"
-      preset = Preset.create(name: name)
-      profiles.each do |track_def|
-        preset.tracks.push Track.from_a(track_def).save
-      end
-    end
+    match(profiles) or create_unknown(profiles)
+  end
+
+  private
+
+  def self.create_unknown(profiles)
+    preset = Preset.create(name: "unknown_preset_#{SecureRandom.hex(2)}")
+    profiles.each { |t| preset.tracks.push Track.from_a(t).save }
     preset
   end
 

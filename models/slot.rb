@@ -21,12 +21,12 @@ class Slot < Ohm::Model
     super.merge(slot_id: slot_id,
         transcoder_id: transcoder.id,
         transcoder_name: transcoder.name,
-        scheme_id: scheme.nil? ? nil : scheme.id,
-        scheme_name: scheme.nil? ? nil : scheme.name)
+        scheme_id: scheme ? scheme.id : nil,
+        scheme_name: scheme ? scheme.name : nil)
   end
 
   def to_s
-    "Slot: slot_id=#{slot_id}, transcoder_id=#{transcoder.id}, scheme_id=#{scheme.nil? ? nil : scheme.id}"
+    "Slot: slot_id=#{slot_id}, transcoder_id=#{transcoder.id}, scheme_id=#{scheme ? scheme.id : nil}"
   end
 
 end

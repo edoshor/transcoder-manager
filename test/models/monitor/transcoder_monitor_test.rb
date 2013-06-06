@@ -19,38 +19,6 @@ class TestTranscoderMonitor < Test::Unit::TestCase
     assert_equal TranscoderMonitor::LOAD_INTERVAL, timer.interval
   end
 
-  def test_load_status_dead
-    txcoder = get_mock_txcoder
-    txcoder.expects(:load_status).never
-
-    monitor = TranscoderMonitor.new(txcoder.id)
-    monitor.state = false
-
-    monitor.sample_load_status
-  end
-
-  def test_load_status_alive
-    txcoder = get_mock_txcoder
-    txcoder.expects(:load_status).returns(:some_result)
-    MonitorService.instance.expects(:load_status).with(txcoder.id, :some_result)
-
-    monitor = TranscoderMonitor.new(txcoder.id)
-    monitor.state = true
-
-    monitor.sample_load_status
-  end
-
-  def test_load_status_error
-    txcoder = get_mock_txcoder
-    txcoder.expects(:load_status).raises(Transcoder::TranscoderError)
-    MonitorService.instance.expects(:load_status).never
-
-    monitor = TranscoderMonitor.new(txcoder.id)
-    monitor.state = true
-
-    monitor.sample_load_status
-  end
-
   def test_alive_no_change
     txcoder = get_mock_txcoder
     monitor = TranscoderMonitor.new(txcoder.id)
@@ -71,9 +39,7 @@ class TestTranscoderMonitor < Test::Unit::TestCase
     monitor.state = false
     txcoder.expects(:is_alive?).returns(true).times(4)
     MonitorService.instance.expects(:state_changed).with(txcoder.id, true).once
-    4.times do
-      monitor.check_is_alive
-    end
+    4.times { monitor.check_is_alive }
 
     txcoder.expects(:is_alive?).returns(false).times(TranscoderMonitor::MIN_STATE_CHANGE)
     MonitorService.instance.expects(:state_changed).with(txcoder.id, false).once
@@ -90,6 +56,87 @@ class TestTranscoderMonitor < Test::Unit::TestCase
     MonitorService.instance.expects(:wakeup_state).with(txcoder.id, true).once
 
     monitor.check_is_alive
+  end
+
+  def test_parse_response
+    resp = Object.new
+    resp.expects(:body).returns({:'cpuload' => '23.4 %',
+                                 :'cputemp' => [{:'0' => '61.9 C'}, {:'1' => '1.9 C'}]}.to_json)
+
+    monitor = TranscoderMonitor.new(0)
+    result = monitor.parse_response resp
+    assert_not_nil result
+    assert_equal 23.4, result[:cpu]
+    assert_equal 61.9, result[:temp]['0']
+    assert_equal 1.9, result[:temp]['1']
+  end
+
+  def test_get_load_status
+    txcoder = get_mock_txcoder
+    monitor = TranscoderMonitor.new(txcoder.id)
+    body = {:'cpuload' => '23.4 %',
+               :'cputemp' => [{:'0' => '61.9 C'}, {:'1' => '1.9 C'}]}.to_json
+    stub_request(:get, "#{txcoder.host}:#{txcoder.status_port}")
+    .to_return(status: 200, body: body, headers: {})
+
+    resp = monitor.get_load_status
+    assert_not_nil resp
+    assert resp.is_a? Net::HTTPSuccess
+    assert_equal body, resp.body
+  end
+
+  def test_get_load_status_error
+    txcoder = get_mock_txcoder
+    monitor = TranscoderMonitor.new(txcoder.id)
+    stub_request(:get, "#{txcoder.host}:#{txcoder.status_port}").to_return(status: [500, 'Internal Server Error'])
+
+    resp = monitor.get_load_status
+    assert_not_nil resp
+    assert_false resp.is_a? Net::HTTPSuccess
+  end
+
+  def test_get_load_status_eof_error
+    txcoder = get_mock_txcoder
+    monitor = TranscoderMonitor.new(txcoder.id)
+    stub_request(:get, "#{txcoder.host}:#{txcoder.status_port}").to_raise(EOFError)
+
+    resp = monitor.get_load_status
+    assert_nil resp
+  end
+
+  def test_sample_load_status
+    txcoder = get_mock_txcoder
+    body = {:'cpuload' => '23.4 %',
+            :'cputemp' => [{:'0' => '61.9 C'}, {:'1' => '1.9 C'}]}.to_json
+    stub_request(:get, "#{txcoder.host}:#{txcoder.status_port}")
+    .to_return(status: 200, body: body, headers: {})
+
+    monitor = TranscoderMonitor.new(txcoder.id)
+    monitor.state = true
+
+    resp = Object.new
+    resp.expects(:body).returns(body)
+    MonitorService.instance.expects(:load_status).with(txcoder.id, monitor.parse_response(resp))
+    monitor.sample_load_status
+  end
+
+  def test_load_status_dead
+    txcoder = get_mock_txcoder
+    monitor = TranscoderMonitor.new(txcoder.id)
+    monitor.state = false
+
+    monitor.sample_load_status
+    assert_not_requested :get, "#{txcoder.host}:#{txcoder.status_port}"
+  end
+
+  def test_sample_load_status_error
+    txcoder = get_mock_txcoder
+    stub_request(:get, "#{txcoder.host}:#{txcoder.status_port}").to_raise(EOFError)
+    MonitorService.instance.expects(:load_status).never
+
+    monitor = TranscoderMonitor.new(txcoder.id)
+    monitor.state = true
+    monitor.sample_load_status
   end
 
   private

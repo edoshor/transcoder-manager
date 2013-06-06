@@ -3,6 +3,34 @@ require_relative '../test_helper'
 class TestTranscoder < Test::Unit::TestCase
   include TestHelper
 
+  def test_get_slot
+    api, transcoder = transcoder_with_api_mock
+
+    slot_resp = {error: 1, result: {slot: 'hash w slot details'}}
+    api.expects(:mod_get_slot).returns(slot_resp)
+    resp = transcoder.get_slot Slot.new(slot_id: 1)
+    assert_equal slot_resp[:result], resp
+
+    assert_raise(Transcoder::TranscoderError) do
+      api.expects(:mod_get_slot).returns({error:3, message: 'expecting error'})
+      transcoder.get_slot Slot.new(slot_id: 1)
+    end
+  end
+
+  def test_get_slot_status
+    api, transcoder = transcoder_with_api_mock
+
+    status_resp = {error: 1, message: 'Slot is stopped'}
+    api.expects(:mod_slot_get_status).returns(status_resp)
+    resp = transcoder.get_slot_status Slot.new(slot_id: 1)
+    assert_equal status_resp, resp
+
+    assert_raise(Transcoder::TranscoderError) do
+      api.expects(:mod_slot_get_status).returns({error:3, message: 'expecting error'})
+      transcoder.get_slot_status Slot.new(slot_id: 1)
+    end
+  end
+
   def test_sync_no_slots
     api, transcoder = transcoder_with_api_mock
 
@@ -65,38 +93,6 @@ class TestTranscoder < Test::Unit::TestCase
     assert_empty errors
     assert_equal 1, transcoder.slots.size
     assert_equal scheme, transcoder.slots.first.scheme
-  end
-
-  def test_load_status
-    transcoder = create(:transcoder)
-    stub_request(:get, "#{transcoder.host}:#{transcoder.status_port}")
-    .to_return(status: 200, body: {:'cpuload' => '23.4 %',
-                                   :'cputemp' => [{:'0' => '61.9 C'}, {:'1' => '1.9 C'}]}.to_json)
-
-    result = transcoder.load_status
-    assert_equal 23.4, result[:cpu]
-    assert_equal 61.9, result[:temp]['0']
-    assert_equal 1.9, result[:temp]['1']
-  end
-
-  def test_load_status_server_error
-    transcoder = create(:transcoder)
-    stub_request(:get, "#{transcoder.host}:#{transcoder.status_port}")
-    .to_return(status: [500, 'Internal Server Error'])
-
-    assert_raise Transcoder::TranscoderError do
-      transcoder.load_status
-    end
-  end
-
-  def test_load_status_eof_error
-    transcoder = create(:transcoder)
-    stub_request(:get, "#{transcoder.host}:#{transcoder.status_port}")
-    .to_raise(EOFError)
-
-    assert_raise Transcoder::TranscoderError do
-      transcoder.load_status
-    end
   end
 
   private
