@@ -44,19 +44,25 @@ class TestMonitorService < Test::Unit::TestCase
   def test_load_status
     txcoder = get_mock_txcoder
     (1..10).each do |i|
-      status = { cpu: i, temp: (0..1).inject({}) {|h, core| h.merge! core => i} }
+      status = { cpu: i, temp: (0..1).inject({}) {|h, core| h.merge! core => rand(100)} }
       MonitorService.instance.load_status txcoder.id, status
+      sleep 0.3
     end
 
     cpu = MonitorService.instance.get_metric txcoder.id, 'cpu', :all
+    cpu_reverse = MonitorService.instance.get_metric_reverse txcoder.id, 'cpu', :all
     assert_not_empty cpu
     assert_equal 10, cpu.size
+    assert_equal cpu, cpu_reverse.reverse
 
     temp = MonitorService.instance.get_metric txcoder.id, 'temp', :all
+    temp_reverse = MonitorService.instance.get_metric_reverse txcoder.id, 'temp', :all
     assert_not_empty temp
     assert_equal 2, temp.size
     assert_equal 10, temp[0].size
     assert_equal 10, temp[1].size
+    assert_equal temp[0], temp_reverse[0].reverse
+    assert_equal temp[1], temp_reverse[1].reverse
   end
 
   private
