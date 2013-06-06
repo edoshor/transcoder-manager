@@ -151,7 +151,7 @@ class MonitorService
   end
 
   def period_to_range(period)
-    if :all == period
+    if :all == period.to_sym
       [0, '+inf']
     else
       max = Time.now.to_i

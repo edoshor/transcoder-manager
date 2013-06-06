@@ -99,14 +99,14 @@ class TranscoderManager < Sinatra::Base
 
     transcoder = get_model(tid, Transcoder)
     slot = transcoder.slots[sid]
-    raise ApiError, "Unknown slot with id #{sid}" if slot.nil?
+    raise ApiError, "Unknown slot with id #{sid}" unless slot
     slot.to_hash.to_json
   end
 
   delete '/transcoders/:id/slots/:id' do |tid, sid|
     transcoder = get_model(tid, Transcoder)
     slot = transcoder.slots[sid]
-    raise ApiError, "Unknown slot with id #{sid}" if slot.nil?
+    raise ApiError, "Unknown slot with id #{sid}" unless slot
     transcoder.delete_slot slot
     slot.delete
     success
@@ -122,16 +122,12 @@ class TranscoderManager < Sinatra::Base
   end
 
   get '/transcoders/save' do
-    Transcoder.all.each do |t|
-      t.save_config
-    end
+    Transcoder.all.each { |t| t.save_config }
     success
   end
 
   get '/transcoders/restart' do
-    Transcoder.all.each do |t|
-      t.restart
-    end
+    Transcoder.all.each { |t| t.restart }
     success
   end
 
@@ -157,24 +153,21 @@ class TranscoderManager < Sinatra::Base
 
   get '/transcoders/:id/slots/start' do
     transcoder = get_model(params[:id], Transcoder)
-    transcoder.slots.each do |slot|
-      transcoder.start_slot slot unless slot.scheme.nil?
-    end
+    transcoder.slots.each { |slot| transcoder.start_slot slot if slot.scheme }
     success
   end
 
   get '/transcoders/:id/slots/stop' do
     transcoder = get_model(params[:id], Transcoder)
-    transcoder.slots.each do |slot|
-      transcoder.stop_slot slot
-    end
+    transcoder.slots.each { |slot| transcoder.stop_slot slot }
     success
   end
 
   get '/transcoders/:id/slots/status' do
     transcoder = get_model(params[:id], Transcoder)
     status = transcoder.slots.map do |slot|
-      prepare_slot_status(transcoder.get_slot_status(slot)).merge({id: slot.id, slot_id: slot.slot_id})
+      prepare_slot_status(transcoder.get_slot_status(slot))
+      .merge({id: slot.id, slot_id: slot.slot_id})
     end
     status.to_json
   end
@@ -182,8 +175,8 @@ class TranscoderManager < Sinatra::Base
   get '/transcoders/:id/slots/:id/start' do |tid, sid|
     transcoder = get_model(tid, Transcoder)
     slot = transcoder.slots[sid]
-    raise ApiError, "Unknown slot with id #{sid}" if slot.nil?
-    raise ApiError, 'Slot has no scheme, delete it and start again.' if slot.scheme.nil?
+    raise ApiError, "Unknown slot with id #{sid}" unless slot
+    raise ApiError, 'Slot has no scheme, delete it and start again.' unless slot.scheme
     transcoder.start_slot slot
     success
   end
@@ -191,7 +184,7 @@ class TranscoderManager < Sinatra::Base
   get '/transcoders/:id/slots/:id/stop' do |tid, sid|
     transcoder = get_model(tid, Transcoder)
     slot = transcoder.slots[sid]
-    raise ApiError, "Unknown slot with id #{sid}" if slot.nil?
+    raise ApiError, "Unknown slot with id #{sid}" unless slot
     transcoder.stop_slot slot
     success
   end
@@ -199,7 +192,7 @@ class TranscoderManager < Sinatra::Base
   get '/transcoders/:id/slots/:id/status' do |tid, sid|
     transcoder = get_model(tid, Transcoder)
     slot = transcoder.slots[sid]
-    raise ApiError, "Unknown slot with id #{sid}" if slot.nil?
+    raise ApiError, "Unknown slot with id #{sid}" unless slot
     resp = transcoder.get_slot_status(slot)
     prepare_slot_status(resp).to_json
   end
@@ -249,7 +242,6 @@ class TranscoderManager < Sinatra::Base
 
   post '/presets' do
     name, tracks = expect_params 'name', 'tracks'
-
     raise ApiError, 'Expecting tracks profiles' if tracks.nil? || tracks.empty?
 
     preset = Preset.new(name: name)
@@ -257,9 +249,7 @@ class TranscoderManager < Sinatra::Base
       invalid_tracks = tracks.select { |track| not Track.new(track).valid? }
       if invalid_tracks.empty?
         preset.save
-        tracks.each do |track|
-          preset.tracks.push Track.create(track)
-        end
+        tracks.each { |track| preset.tracks.push Track.create(track) }
         preset.to_hash.to_json
       else
         track = Track.new(invalid_tracks[0])
@@ -338,7 +328,7 @@ class TranscoderManager < Sinatra::Base
 
   def update_model(model, atts)
     return model.to_hash.to_json if atts.empty?
-    model.update(atts).nil? ? validation_error(model.errors) : model.to_hash.to_json
+    model.update(atts) ? model.to_hash.to_json : validation_error(model.errors)
   end
 
   def all_to_json(clazz)
@@ -346,9 +336,7 @@ class TranscoderManager < Sinatra::Base
   end
 
   def delete_all(clazz)
-    clazz.all.each do |m|
-      m.delete
-    end
+    clazz.all.each { |m| m.delete }
   end
 
   def success(msg = 'success')
@@ -367,7 +355,7 @@ class TranscoderManager < Sinatra::Base
 
   def expect_params(*p_names)
     p_names.map do |p|
-      raise ApiError, "expecting #{p} but didn't get any" if params[p].nil?
+      raise ApiError, "expecting #{p} but didn't get any" unless params[p]
       params[p]
     end
   end
@@ -391,7 +379,6 @@ class TranscoderManager < Sinatra::Base
     mins  = secs / 60
     hours = mins / 60
     days  = hours / 24
-
     time_in_day = format('%02d:%02d:%02d', hours % 24, mins % 60, secs % 60)
     days > 0 ? "#{days} days #{time_in_day}" : time_in_day
   end

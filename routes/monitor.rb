@@ -8,22 +8,25 @@ class TranscoderManager < Sinatra::Base
   end
 
   get '/monitor/start' do
-    MonitorService.instance.start and 'success'
+    MonitorService.instance.start and success
   end
 
   get '/monitor/shutdown' do
-    MonitorService.instance.shutdown and 'success'
+    MonitorService.instance.shutdown and success
   end
 
   get '/monitor/:tx_id/:metric' do
     metric = params[:metric]
     raise ApiError, "Unknown metric: #{metric}" unless %w(cpu temp state events).include? metric
+    period = params[:period] || 'hour'
+    raise ApiError, "Unknown period: #{period}" unless %w(all week day hour 10_minutes).include? period
 
-    period = params[:period]
-    period = 'hour' if period.nil? # default period
-    raise ApiError, "Unknown period: #{period}" unless %w(week day hour 10_minutes).include? period
-
-    result = MonitorService.instance.get_metric params[:tx_id], metric, period
+    reverse = params[:reverse]
+    if reverse
+      result = MonitorService.instance.get_metric_reverse params[:tx_id], metric, period
+    else
+      result = MonitorService.instance.get_metric params[:tx_id], metric, period
+    end
 
     if metric == 'temp'
       "[#{result.map { |core| "[#{ core.join(',') }]" }.join(',')}]"
@@ -31,7 +34,6 @@ class TranscoderManager < Sinatra::Base
       "[#{result.join(',')}]"
     end
   end
-
 
   get '/monitor/test-email' do
     to = params[:to]
