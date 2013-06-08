@@ -62,16 +62,12 @@ class TranscoderManager < Sinatra::Base
 
   get '/events/:id/start' do
     event = get_model(params[:id], Event)
-    event.slots.each { |slot| slot.transcoder.start_slot slot }
-    event.start
-    success
+    event.start and success
   end
 
   get '/events/:id/stop' do
     event = get_model(params[:id], Event)
-    event.slots.each { |slot| slot.transcoder.stop_slot slot }
-    event.stop
-    success
+    event.stop and success
   end
 
   get '/events/:id/status' do
@@ -91,17 +87,13 @@ class TranscoderManager < Sinatra::Base
   end
 
   def prepare_slot_status(resp)
-    if resp[:error] == TranscoderApi::RET_OK
-      if resp[:message].include? 'stop'
-        { status: 'success', running: false }
-      else
-        { status: 'success',
-          running: true,
-          signal: resp[:result][:signal],
-          uptime: format_duration(resp[:result][:uptime]) }
-      end
+    if resp[:message].include? 'stop'
+      { status: 'success', running: false }
     else
-      { status: 'error', type: resp[:error], message: resp[:message]}
+      { status: 'success',
+        running: true,
+        signal: resp[:result][:signal],
+        uptime: format_duration(resp[:result][:uptime]) }
     end
   end
 

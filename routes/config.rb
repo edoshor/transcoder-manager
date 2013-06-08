@@ -187,17 +187,8 @@ class TranscoderManager < Sinatra::Base
   end
 
   post '/events' do
-    name, slots_ids = expect_params 'name', 'slots'
-    slots = slots_ids.map { |slot_id| get_model slot_id, Slot}
-
-    event = Event.new(name: name)
-    if event.valid?
-      event.save
-      slots.each { |slot| event.slots.push slot }
-      event.to_hash.to_json
-    else
-      validation_error event.errors
-    end
+    name = expect_params('name')[0]
+    save_model Event.new(name: name)
   end
 
   get '/events/:id' do
@@ -210,6 +201,26 @@ class TranscoderManager < Sinatra::Base
 
   delete '/events/:id' do
     get_model(params[:id], Event).delete and success
+  end
+
+  get '/events/:id/slots' do
+    event = get_model(params[:id], Event)
+    event.slots.map { |s| s.to_hash }.to_json
+  end
+
+  post '/events/:id/slots' do
+    slot_id = expect_params('slot_id')[0]
+    slot = get_model(slot_id, Slot)
+    event = get_model(params[:id], Event)
+    event.slots.push slot
+    success
+  end
+
+  delete '/events/:id/slots/:id' do |eid, sid|
+    slot = get_model(sid, Slot)
+    event = get_model(eid, Event)
+    event.slots.delete slot
+    success
   end
 
   private

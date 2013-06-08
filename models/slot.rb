@@ -29,4 +29,17 @@ class Slot < Ohm::Model
     "Slot: slot_id=#{slot_id}, transcoder_id=#{transcoder.id}, scheme_id=#{scheme ? scheme.id : nil}"
   end
 
+  def running
+    resp = transcoder.get_slot_status(self)
+    not resp[:message].include? 'stop'
+  end
+
+  def start
+    transcoder.start_slot self
+  end
+
+  def stop
+    transcoder.stop_slot self
+  end
+
 end

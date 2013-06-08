@@ -220,13 +220,60 @@ class ConfigTest < Test::Unit::TestCase
   # --- Events ---
 
   def test_create_event
+    post '/events', {name: 'event1'}
+    event = assert_successful last_response
+    assert_not_nil event
+    assert_equal 'event1', event['name']
+  end
+
+  def test_event_add_slot
     txcoder = create(:transcoder)
     scheme = create(:scheme)
     slot = Slot.create(slot_id: 1, transcoder: txcoder, scheme: scheme)
 
-    post '/events', {name: 'event1', slots: [slot.id]}
+    post '/events', {name: 'event1'}
     event = assert_successful last_response
-    assert_not_nil event
+
+    post "/events/#{event['id']}/slots", {slot_id: slot.id}
+    body = assert_successful last_response
+    assert_match(/success/, body['result'])
+
+    get "/events/#{event['id']}/slots"
+    slots = assert_successful last_response
+    assert_not_empty slots
+    assert_equal 1, slots.size
+    assert_equal slot.id, slots[0]['id']
+  end
+
+  def test_event_remove_slot
+    post '/events', {name: 'event1'}
+    event = assert_successful last_response
+    txcoder = create(:transcoder)
+    scheme = create(:scheme)
+
+    slots_models = 5.times.inject([]) do |a, i|
+      slot = Slot.create(slot_id: i, transcoder: txcoder, scheme: scheme)
+      post "/events/#{event['id']}/slots", {slot_id: slot.id}
+      body = assert_successful last_response
+      assert_match(/success/, body['result'])
+      a << slot
+    end
+
+    get "/events/#{event['id']}/slots"
+    slots = assert_successful last_response
+    assert_not_empty slots
+    assert_equal 5, slots.size
+
+    slots_count = slots_models.size
+    slots_models.each do |slot|
+      delete "/events/#{event['id']}/slots/#{slot.id}"
+      body = assert_successful last_response
+      assert_match(/success/, body['result'])
+      slots_count -= 1
+      get "/events/#{event['id']}/slots"
+      slots = assert_successful last_response
+      assert_equal slots_count, slots.size
+    end
   end
 
   def test_event_transcoder_deleted
