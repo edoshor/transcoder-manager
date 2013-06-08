@@ -1,6 +1,6 @@
 require_relative 'acceptance_helper'
 
-class CrudTest < Test::Unit::TestCase
+class ConfigTest < Test::Unit::TestCase
   include AcceptanceHelper
 
   # --- Transcoders ---

@@ -3,10 +3,6 @@ require_relative '../app_config'
 
 class TranscoderManager < Sinatra::Base
 
-  before do
-    content_type :json
-  end
-
   get '/monitor/start' do
     MonitorService.instance.start and success
   end

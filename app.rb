@@ -47,13 +47,31 @@ class TranscoderManager < Sinatra::Base
     disable :dump_errors
   end
 
-  # Error handlers and general routes
+  # General routes
 
-  class ApiError < StandardError; end
+  before do
+    content_type :json
+    headers \
+     'Access-Control-Allow-Origin' => '*',
+     'Access-Control-Allow-Methods' => 'POST, GET, OPTIONS',
+     'Access-Control-Allow-Headers' => 'Content-Type'
+  end
 
   get '/' do
     halt 200, {'Content-Type' => 'text/plain'}, "BB Web Broadcast - Transcoder Manager. #{Time.now}"
   end
+
+  get '/test-redis' do
+    if 'PONG' == Ohm.redis.ping
+      "redis is alive at #{Ohm.conn.options[:url]}"
+    else
+      'redis is dead.'
+    end
+  end
+
+  # Error handlers
+
+  class ApiError < StandardError; end
 
   not_found do
     'This is nowhere to be found. Intention !'
@@ -84,10 +102,21 @@ class TranscoderManager < Sinatra::Base
     logger.error("Exception: '#{e.message}'\nBacktrace:\n#{trace}")
   end
 
+  def success(msg = 'success')
+    {result: msg}.to_json
+  end
+
   def handle_error(status, message)
     e = env['sinatra.error']
     status == 500 ? log_exception(e) : logger.warn(e.message)
     halt status, {'Content-Type' => 'text/plain'}, "#{message} - #{e.message}"
+  end
+
+  def expect_params(*parameter_names)
+    parameter_names.map do |p|
+      raise ApiError, "expecting #{p} but didn't get any" unless params[p]
+      params[p]
+    end
   end
 
 end

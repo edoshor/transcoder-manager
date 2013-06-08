@@ -4,7 +4,6 @@ class MonitorTest < Test::Unit::TestCase
   include AcceptanceHelper
 
   def test_monitor
-
     now = Time.now
     (6 * 60 * 2).times do
       now = now - 10
