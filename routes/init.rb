@@ -1,3 +1,4 @@
+require_relative 'config'
 require_relative 'monitor'
-require_relative 'user'
+require_relative 'actions'
 
