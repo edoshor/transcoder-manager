@@ -2,15 +2,7 @@ require_relative '../app_config'
 
 class TranscoderManager < Sinatra::Base
 
-  get '/transcoders/save' do
-    Transcoder.all.each { |t| t.save_config }
-    success
-  end
-
-  get '/transcoders/restart' do
-    Transcoder.all.each { |t| t.restart }
-    success
-  end
+  # --- Transcoders ---
 
   get '/transcoders/:id/save' do
     get_model(params[:id], Transcoder).save_config and success
@@ -24,25 +16,21 @@ class TranscoderManager < Sinatra::Base
     get_model(params[:id], Transcoder).sync and success
   end
 
-  get '/transcoders/:id/slots/start' do
-    transcoder = get_model(params[:id], Transcoder)
-    transcoder.slots.each { |slot| transcoder.start_slot slot if slot.scheme }
-    success
+  get '/transcoders/:id/status' do
+    t = get_model(params[:id], Transcoder)
+    redirect "http://#{t.host}:#{t.status_port}"
   end
 
-  get '/transcoders/:id/slots/stop' do
-    transcoder = get_model(params[:id], Transcoder)
-    transcoder.slots.each { |slot| transcoder.stop_slot slot }
-    success
+  get '/transcoders/:id/load-status' do
+    t = get_model(params[:id], Transcoder)
+    t.load_status.to_json
   end
+
+  # --- Slots ---
 
   get '/transcoders/:id/slots/status' do
     transcoder = get_model(params[:id], Transcoder)
-    status = transcoder.slots.map do |slot|
-      prepare_slot_status(transcoder.get_slot_status(slot))
-      .merge({id: slot.id, slot_id: slot.slot_id})
-    end
-    status.to_json
+    slots_status(transcoder.slots).to_json
   end
 
   get '/transcoders/:id/slots/:id/start' do |tid, sid|
@@ -70,17 +58,37 @@ class TranscoderManager < Sinatra::Base
     prepare_slot_status(resp).to_json
   end
 
-  get '/transcoders/:id/status' do
-    t = get_model(params[:id], Transcoder)
-    redirect "http://#{t.host}:#{t.status_port}"
+  # --- Broadcast events ---
+
+  get '/events/:id/start' do
+    event = get_model(params[:id], Event)
+    event.slots.each { |slot| slot.transcoder.start_slot slot }
+    event.start
+    success
   end
 
-  get '/transcoders/:id/load-status' do
-    t = get_model(params[:id], Transcoder)
-    t.load_status.to_json
+  get '/events/:id/stop' do
+    event = get_model(params[:id], Event)
+    event.slots.each { |slot| slot.transcoder.stop_slot slot }
+    event.stop
+    success
+  end
+
+  get '/events/:id/status' do
+    event = get_model(params[:id], Event)
+    state = event.state
+    state[:last_switch] = format_duration state[:last_switch]
+    state.merge(slots_status(event.slots)).to_json
   end
 
   private
+
+  def slots_status(slots)
+    slots.map do |slot|
+      prepare_slot_status(slot.transcoder.get_slot_status(slot))
+      .merge({id: slot.id, slot_id: slot.slot_id})
+    end
+  end
 
   def prepare_slot_status(resp)
     if resp[:error] == TranscoderApi::RET_OK

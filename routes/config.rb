@@ -23,14 +23,6 @@ class TranscoderManager < Sinatra::Base
     end
   end
 
-  delete '/transcoders' do
-    Transcoder.all.each do |t|
-      MonitorService.instance.remove_txcoder t.id
-      t.delete
-    end
-    success
-  end
-
   get '/transcoders/:id' do
     get_model(params[:id], Transcoder).to_hash.to_json
   end
@@ -44,6 +36,7 @@ class TranscoderManager < Sinatra::Base
     #TODO don't terminate if transcoder is active !
 
     MonitorService.instance.remove_txcoder transcoder.id
+    transcoder.slots.each { |slot| slot.delete }
     transcoder.delete
     success
   end
@@ -69,15 +62,6 @@ class TranscoderManager < Sinatra::Base
     save_model slot
   end
 
-  delete '/transcoders/:id/slots' do
-    transcoder = get_model(params[:id], Transcoder)
-    transcoder.slots.each do |s|
-      transcoder.delete_slot s
-      s.delete
-    end
-    success
-  end
-
   get '/transcoders/:id/slots/:id' do |tid, sid|
     pass unless sid =~ /\d+/  # pass non numeric ids
 
@@ -98,7 +82,6 @@ class TranscoderManager < Sinatra::Base
 
   get '/transcoders/:id/net-config' do
     get_model(params[:id], Transcoder).get_net_config.to_json
-    #TODO return net config json
   end
 
   put '/transcoders/:id/net-config' do
@@ -114,10 +97,6 @@ class TranscoderManager < Sinatra::Base
   post '/sources' do
     name, host, port = expect_params 'name', 'host', 'port'
     save_model Source.new(name: name, host: host, port: port)
-  end
-
-  delete '/sources' do
-    delete_all Source and success
   end
 
   get '/sources/:id' do
@@ -159,10 +138,6 @@ class TranscoderManager < Sinatra::Base
     end
   end
 
-  delete '/presets' do
-    delete_all Preset and success
-  end
-
   get '/presets/:id' do
     get_model(params[:id], Preset).to_hash.to_json
   end
@@ -193,10 +168,6 @@ class TranscoderManager < Sinatra::Base
                    audio_mappings: audio_mappings)
   end
 
-  delete '/schemes' do
-    delete_all Scheme and success
-  end
-
   get '/schemes/:id' do
     get_model(params[:id], Scheme).to_hash.to_json
   end
@@ -207,6 +178,38 @@ class TranscoderManager < Sinatra::Base
 
   delete '/schemes/:id' do
     get_model(params[:id], Scheme).delete and success
+  end
+
+  # --- Events ---
+
+  get '/events' do
+    all_to_json Event
+  end
+
+  post '/events' do
+    name, slots_ids = expect_params 'name', 'slots'
+    slots = slots_ids.map { |slot_id| get_model slot_id, Slot}
+
+    event = Event.new(name: name)
+    if event.valid?
+      event.save
+      slots.each { |slot| event.slots.push slot }
+      event.to_hash.to_json
+    else
+      validation_error event.errors
+    end
+  end
+
+  get '/events/:id' do
+    get_model(params[:id], Event).to_hash.to_json
+  end
+
+  put '/events/:id' do
+    raise ApiError, 'Operation not supported'
+  end
+
+  delete '/events/:id' do
+    get_model(params[:id], Event).delete and success
   end
 
   private
@@ -231,10 +234,6 @@ class TranscoderManager < Sinatra::Base
 
   def all_to_json(clazz)
     clazz.all.map { |m| m.to_hash }.to_json
-  end
-
-  def delete_all(clazz)
-    clazz.all.each { |m| m.delete }
   end
 
   def validation_error(errors)

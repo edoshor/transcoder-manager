@@ -52,4 +52,8 @@ FactoryGirl.define do
     association :src2 , factory: :source, strategy: :create
     audio_mappings { preset.tracks.map { |t| rand(preset.tracks.size) } }
   end
+
+  factory :event do
+    sequence(:name) { |n| "event#{n}" }
+  end
 end

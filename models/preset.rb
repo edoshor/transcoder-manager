@@ -14,7 +14,7 @@ class Preset < Ohm::Model
   end
 
   def to_s
-    "Preset: name=#{name},track_cnt=#{tracks.size}"
+    "Preset: name=#{name}, track_cnt=#{tracks.size}"
   end
 
   def self.match(profiles)

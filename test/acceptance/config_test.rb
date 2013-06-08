@@ -94,6 +94,16 @@ class ConfigTest < Test::Unit::TestCase
     assert_match(/success/, body['result'])
   end
 
+  def test_delete_transcoder
+    txcoder = create(:transcoder)
+    scheme = create(:scheme)
+    5.times { |i| Slot.create(slot_id: i, transcoder: txcoder, scheme: scheme) }
+
+    delete "/transcoders/#{txcoder.id}"
+    assert_successful last_response
+    assert_equal 0, Slot.all.size
+  end
+
   # --- Sources ---
 
   def test_get_sources
@@ -205,6 +215,41 @@ class ConfigTest < Test::Unit::TestCase
 
     scheme = assert_successful last_response
     assert_not_nil scheme
+  end
+
+  # --- Events ---
+
+  def test_create_event
+    txcoder = create(:transcoder)
+    scheme = create(:scheme)
+    slot = Slot.create(slot_id: 1, transcoder: txcoder, scheme: scheme)
+
+    post '/events', {name: 'event1', slots: [slot.id]}
+    event = assert_successful last_response
+    assert_not_nil event
+  end
+
+  def test_event_transcoder_deleted
+    t1 = create(:transcoder)
+    t2 = create(:transcoder)
+    scheme = create(:scheme)
+    slot1 = Slot.create(slot_id: 1, transcoder: t1, scheme: scheme)
+    slot2 = Slot.create(slot_id: 1, transcoder: t2, scheme: scheme)
+
+    post '/events', {name: 'event1', slots: [slot1.id, slot2.id]}
+    event = assert_successful last_response
+    assert_not_nil event
+
+    delete "/transcoders/#{t2.id}"
+    assert_successful last_response
+
+    # TODO: uncomment below once we protect from deleting active configurations.
+
+    #get "/events/#{event['id']}"
+    #event = assert_successful last_response
+    #assert_not_nil event
+    #assert_equal 1, event.slots.size
+    #assert_equal t1.id, event.slots[0]['transcoder_id']
   end
 
 end

@@ -4,6 +4,7 @@ require_relative 'preset'
 require_relative 'slot'
 require_relative 'track'
 require_relative 'scheme'
+require_relative 'event'
 
 require_relative 'monitor/monitor_group'
 require_relative 'monitor/monitor_service'
