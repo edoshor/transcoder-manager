@@ -73,27 +73,27 @@ class TranscoderManager < Sinatra::Base
   get '/events/:id/status' do
     event = get_model(params[:id], Event)
     state = event.state
-    state[:last_switch] = format_duration state[:last_switch]
-    state.merge(slots_status(event.slots)).to_json
+    state[:uptime] = format_duration(Time.now.to_i - state[:last_switch].to_i) if state[:running]
+    (params[:with_slots] ? state.merge(slots: slots_status(event.slots)) : state).to_json
   end
 
   private
 
   def slots_status(slots)
     slots.map do |slot|
-      prepare_slot_status(slot.transcoder.get_slot_status(slot))
-      .merge({id: slot.id, slot_id: slot.slot_id})
+      status = slot.transcoder.get_slot_status(slot)
+      prepare_slot_status(status).merge({id: slot.id, slot_id: slot.slot_id})
     end
   end
 
   def prepare_slot_status(resp)
-    if resp[:message].include? 'stop'
-      { status: 'success', running: false }
-    else
+    if resp[:message].include? 'running'
       { status: 'success',
         running: true,
         signal: resp[:result][:signal],
         uptime: format_duration(resp[:result][:uptime]) }
+    else
+      { status: 'success', running: false }
     end
   end
 

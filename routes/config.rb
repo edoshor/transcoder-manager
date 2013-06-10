@@ -212,14 +212,14 @@ class TranscoderManager < Sinatra::Base
     slot_id = expect_params('slot_id')[0]
     slot = get_model(slot_id, Slot)
     event = get_model(params[:id], Event)
-    event.slots.push slot
+    event.add_slot slot
     success
   end
 
   delete '/events/:id/slots/:id' do |eid, sid|
     slot = get_model(sid, Slot)
     event = get_model(eid, Event)
-    event.slots.delete slot
+    event.remove_slot slot
     success
   end
 

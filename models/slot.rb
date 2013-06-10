@@ -30,8 +30,12 @@ class Slot < Ohm::Model
   end
 
   def running
-    resp = transcoder.get_slot_status(self)
-    not resp[:message].include? 'stop'
+    begin
+      status = transcoder.get_slot_status(self)
+      status[:message].include? 'running'
+    rescue
+      false
+    end
   end
 
   def start
