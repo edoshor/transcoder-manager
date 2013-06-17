@@ -218,16 +218,8 @@ class TranscoderApi
   end
 
   def is_alive?
-    socket = nil
-    begin
-      timeout(@timeout) do
-        socket = TCPSocket.open(@host, @port)
-      end
-      socket.close
-      return true
-    rescue
-      return false
-    end
+    resp = mod_get_slots
+    resp[:error] == RET_OK
   end
 
   private
