@@ -3,13 +3,6 @@ require_relative 'acceptance_helper'
 class TranscodingTest < Test::Unit::TestCase
   include AcceptanceHelper
 
-  def test_root
-    get '/'
-    assert_equal 200, last_response.status
-    assert_equal 'text/plain', last_response.header['Content-Type']
-    assert_match(/BB Web Broadcast - Transcoder Manager/, last_response.body)
-  end
-
   def test_start_slot
     post '/transcoders', name: 'transcoder1', host: '10.65.6.104'
     post '/sources', name: 'source1', host: '192.168.2.1', port: 3000

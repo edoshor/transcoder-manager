@@ -53,7 +53,7 @@ class Event < Ohm::Model
   def other_running_events_slots
     slots = Set.new
     Event.find(running: true).each { |event| slots.merge(event.slots) unless event == self }
-    slots.keep_if { |slot| slot.running rescue false}
+    slots.keep_if { |slot| slot.running rescue false }
   end
 
 end

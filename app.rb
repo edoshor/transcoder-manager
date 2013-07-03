@@ -51,10 +51,13 @@ class TranscoderManager < Sinatra::Base
 
   before do
     content_type :json
-    headers \
-     'Access-Control-Allow-Origin' => '*',
+    headers 'Access-Control-Allow-Origin' => '*',
      'Access-Control-Allow-Methods' => 'POST, GET, OPTIONS',
      'Access-Control-Allow-Headers' => 'Content-Type'
+
+    base_path = env['HTTP_X_FORWARDED_BASE_PATH'] || '/'
+    base_path = '' if base_path == '/'
+    env['PATH_INFO'][base_path]= ''
   end
 
   get '/' do
@@ -62,11 +65,11 @@ class TranscoderManager < Sinatra::Base
   end
 
   get '/test-redis' do
+    msg = 'redis is dead.'
     if 'PONG' == Ohm.redis.ping
-      "redis is alive at #{Ohm.conn.options[:url]}"
-    else
-      'redis is dead.'
+      msg = "redis is alive at #{Ohm.conn.options[:url]}".to_json
     end
+    halt 200, {'Content-Type' => 'text/plain'}, msg
   end
 
   # Error handlers

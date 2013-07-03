@@ -12,6 +12,12 @@ module AcceptanceHelper
     JSON.parse resp.body
   end
 
+  def assert_successful_text(resp, text)
+    assert_equal 200, resp.status
+    assert_equal 'text/plain', resp.header['Content-Type']
+    assert_match(text, resp.body)
+  end
+
   def assert_validation_error(resp)
     assert_equal 400, resp.status
     assert resp.header['Content-Type'].include?('application/json')
