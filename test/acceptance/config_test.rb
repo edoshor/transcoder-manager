@@ -258,21 +258,18 @@ class ConfigTest < Test::Unit::TestCase
       assert_match(/success/, body['result'])
       a << slot
     end
-
     get "/events/#{event['id']}/slots"
     slots = assert_successful last_response
     assert_not_empty slots
     assert_equal 5, slots.size
 
-    slots_count = slots_models.size
+    event_model = Event[event['id']]
+    Event.stubs(:[]).with(event['id']).returns(event_model)
     slots_models.each do |slot|
+      event_model.expects(:remove_slot).with() {|s| s.id == slot.id}
       delete "/events/#{event['id']}/slots/#{slot.id}"
       body = assert_successful last_response
       assert_match(/success/, body['result'])
-      slots_count -= 1
-      get "/events/#{event['id']}/slots"
-      slots = assert_successful last_response
-      assert_equal slots_count, slots.size
     end
   end
 

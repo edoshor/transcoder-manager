@@ -11,14 +11,14 @@ class TestPreset < Test::Unit::TestCase
   end
 
   def test_match_or_create
-    10.times do
-      profiles = build_list(:audio_track, 7).map { |t| t.to_a }
-      assert_nil Preset.match profiles
-      match = Preset.match_or_create profiles
-      assert_not_nil match
-      assert_match(/unknown_preset_[0-9a-f]{4}/, match.name)
-      assert_equal profiles, match.tracks.map { |t| t.to_a }
-    end
+    profiles = build_list(:audio_track, 7).map { |t| t.to_a }
+
+    assert_nil Preset.match profiles
+
+    match = Preset.match_or_create profiles
+    assert_not_nil match
+    assert_match(/unknown_preset_[0-9a-f]{4}/, match.name)
+    assert_equal profiles, match.tracks.map { |t| t.to_a }
   end
 
 end
