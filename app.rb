@@ -51,22 +51,27 @@ class TranscoderManager < Sinatra::Base
 
   before do
     content_type :json
+
+    # allow cross origin calls
     headers 'Access-Control-Allow-Origin' => '*',
      'Access-Control-Allow-Methods' => 'POST, GET, OPTIONS',
      'Access-Control-Allow-Headers' => 'Content-Type'
 
+    # normalize base path from custom header
     base_path = env['HTTP_X_FORWARDED_BASE_PATH'] || '/'
     base_path = '' if base_path == '/'
     env['PATH_INFO'][base_path]= ''
   end
 
   get '/' do
-    halt 200, {'Content-Type' => 'text/plain'}, "BB Web Broadcast - Transcoder Manager. #{Time.now}"
+    halt 200,
+         {'Content-Type' => 'text/plain'},
+         "BB Web Broadcast - Transcoder Manager. #{Time.now}"
   end
 
   get '/test-redis' do
     msg = 'redis is dead.'
-    if 'PONG' == Ohm.redis.ping
+    if Ohm.redis.ping == 'PONG'
       msg = "redis is alive at #{Ohm.conn.options[:url]}".to_json
     end
     halt 200, {'Content-Type' => 'text/plain'}, msg
@@ -81,7 +86,13 @@ class TranscoderManager < Sinatra::Base
   end
 
   error do
-    handle_error 500, 'Internal Server Error'
+    e = env['sinatra.error']
+    if e.message =~ /reconnect to Redis/
+      logger.warn "Redis connection error: #{e.message}. Trying to reconnect."
+      recover_redis_connection
+    else
+      handle_error 500, 'Internal Server Error'
+    end
   end
 
   error ApiError do
@@ -119,6 +130,18 @@ class TranscoderManager < Sinatra::Base
     parameter_names.map do |p|
       raise ApiError, "expecting #{p} but didn't get any" unless params[p]
       params[p]
+    end
+  end
+
+  def recover_redis_connection
+    begin
+      Ohm.connect url: settings.redis_url, driver: :hiredis
+      if Ohm.redis.ping == 'PONG'
+        logger.info 'Successfully reconnected to redis. Re invoking route'
+        dispatch!
+      end
+    rescue => ex
+      logger.error "Unable to reconnect: #{ex.message}"
     end
   end
 
