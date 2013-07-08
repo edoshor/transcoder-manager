@@ -1,9 +1,21 @@
+require 'webmock/test_unit'
+require 'rack/test'
+require_relative '../../app'
+require_relative '../../app_config'
 require_relative '../test_helper.rb'
 
 module AcceptanceHelper
   include Rack::Test::Methods
   include FactoryGirl::Syntax::Methods
   include TestHelper
+
+  def app
+    TranscoderManager.new
+  end
+
+  Mail.defaults do
+    delivery_method :test
+  end
 
   def assert_successful(resp)
     puts resp.to_s unless resp.status == 200

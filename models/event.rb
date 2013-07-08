@@ -40,14 +40,13 @@ class Event < Ohm::Model
   end
 
   def add_slot(slot)
-    slots.push(slot)
+    slots.push(slot) unless slots.include? slot
     slot.start if running && !slot.running
   end
 
   def remove_slot(slot)
     slots.delete(slot)
-    other_slots = other_running_events_slots
-    slot.stop unless other_slots.delete? slot
+    slot.stop unless other_running_events_slots.delete? slot
   end
 
   def other_running_events_slots

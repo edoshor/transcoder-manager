@@ -6,24 +6,32 @@ Bundler.setup
 Bundler.require(:test)
 
 require 'test/unit'
-require 'rack/test'
 require 'factory_girl'
 require 'mocha/setup'
-require 'webmock/test_unit'
-require_relative '../app'
-require_relative '../app_config'
+require 'redis'
+require 'json'
+require 'ohm'
+require 'log4r'
+require 'log4r/yamlconfigurator'
+require 'log4r/outputter/datefileoutputter'
+require_relative '../models/init'
 require_relative 'factories'
-
 
 module TestHelper
   include FactoryGirl::Syntax::Methods
 
-  Mail.defaults do
-    delivery_method :test
+  if defined?(Celluloid)
+    Celluloid.shutdown
   end
 
-  def app
-    TranscoderManager.new
+  def self.startup
+    # initialize logging
+    Log4r::YamlConfigurator.load_yaml_file "config/logging-#{ENV['RACK_ENV']}.yaml"
+
+    # initialize connection to redis
+    redis_url = ENV['REDIS_URL'] || 'redis://127.0.0.1/0'
+    Ohm.connect url: redis_url, driver: :hiredis
+    Ohm.redis.ping
   end
 
   def setup
