@@ -11,4 +11,6 @@ Installation
 -
 
 ### Custom base path
-By default, the application is expected to be served under the root path. If you want it to be served on a different path, use your favorite http server to reverse proxy it under whatever path you want. Just set a custom header, **X-Forwarded-Base-Path**, with this path.
+By default, the application is expected to be served under the root path.
+If you want it to be served on a different path set a custom header, **X-Forwarded-Base-Path**,
+ with this path (start with leading '/').
