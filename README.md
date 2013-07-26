@@ -12,5 +12,5 @@ Installation
 
 ### Custom base path
 By default, the application is expected to be served under the root path.
-If you want it to be served on a different path set a custom header, **X-Forwarded-Base-Path**,
- with this path (start with leading '/').
+If you want it to be served on a different path.
+Set a custom header, **X-Forwarded-Base-Path**, with this path (start with leading '/').
