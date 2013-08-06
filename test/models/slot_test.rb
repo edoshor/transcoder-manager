@@ -27,6 +27,14 @@ class TestSlot < Test::Unit::TestCase
     assert_false slot.running
   end
 
+  def test_find_by_scheme
+    scheme = create(:scheme)
+    slot = Slot.create(slot_id: 1, transcoder: create(:transcoder), scheme: scheme)
+    assert_not_empty Slot.find_by_scheme scheme
+    slot.delete
+    assert_empty Slot.find_by_scheme scheme
+  end
+
   private
 
   def create_slot

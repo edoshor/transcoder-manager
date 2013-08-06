@@ -8,8 +8,9 @@ t1 = Thread.new do
   loop do
     client = server.accept
     puts "#{Time.now}: serving client from #{client.peeraddr}"
-    client.puts(Time.now.ctime)
-    client.puts 'Closing the connection. Bye!'
+    #client.puts(Time.now.ctime)
+    #client.puts 'Closing the connection. Bye!'
+    client.puts [1,0].pack('CC')
     client.close
   end
 end

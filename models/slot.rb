@@ -46,4 +46,8 @@ class Slot < Ohm::Model
     transcoder.stop_slot self
   end
 
+  def self.find_by_scheme(scheme)
+    find(scheme_id: scheme.id)
+  end
+
 end

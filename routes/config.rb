@@ -194,7 +194,12 @@ class TranscoderManager < Sinatra::Base
   end
 
   delete '/schemes/:id' do
-    get_model(params[:id], Scheme).delete and success
+    scheme = get_model(params[:id], Scheme)
+    if Slot.find_by_scheme(scheme).any? { |slot| Event.slot_in_use? slot }
+      config_integrity_error 'Scheme is in use. Can not delete.'
+    else
+      scheme.delete and success
+    end
   end
 
   # --- Events ---

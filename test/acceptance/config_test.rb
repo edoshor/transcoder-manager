@@ -319,4 +319,21 @@ class ConfigTest < Test::Unit::TestCase
     assert_configuration_error last_response
   end
 
+  def test_event_scheme_deleted
+    txcoder = create(:transcoder)
+    scheme = create(:scheme)
+    scheme2 = create(:scheme)
+    slot = Slot.create(slot_id: 1, transcoder: txcoder, scheme: scheme)
+
+    post '/events', {name: 'event1'}
+    event = assert_successful last_response
+    assert_not_nil event
+    post "/events/#{event['id']}/slots", slot_id: slot.id
+    assert_successful last_response
+    delete "/schemes/#{scheme.id}"
+    assert_configuration_error last_response
+    delete "/schemes/#{scheme2.id}"
+    assert_successful last_response
+  end
+
 end
