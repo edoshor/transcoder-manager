@@ -57,4 +57,8 @@ class Event < Ohm::Model
     slots.keep_if { |slot| slot.running rescue false }
   end
 
+  def self.slot_in_use? (slot)
+    Event.all.any? { |event| event.slots.include? slot }
+  end
+
 end

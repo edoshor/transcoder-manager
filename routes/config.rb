@@ -33,12 +33,14 @@ class TranscoderManager < Sinatra::Base
 
   delete '/transcoders/:id' do
     transcoder = get_model(params[:id], Transcoder)
-    #TODO don't terminate if transcoder is active !
-
-    MonitorService.instance.remove_txcoder transcoder.id
-    transcoder.slots.each { |slot| slot.delete }
-    transcoder.delete
-    success
+    if transcoder.slots.any? { |slot| Event.slot_in_use? slot }
+      config_integrity_error 'Transcoder is in use. Can not delete.'
+    else
+      MonitorService.instance.remove_txcoder transcoder.id
+      transcoder.slots.each { |slot| slot.delete }
+      transcoder.delete
+      success
+    end
   end
 
   get '/transcoders/:id/slots' do
@@ -75,9 +77,14 @@ class TranscoderManager < Sinatra::Base
     transcoder = get_model(tid, Transcoder)
     slot = transcoder.slots[sid]
     raise ApiError, "Unknown slot with id #{sid}" unless slot
-    transcoder.delete_slot slot
-    slot.delete
-    success
+
+    if Event.slot_in_use? slot
+      config_integrity_error 'Slot is in use. Can not delete.'
+    else
+      transcoder.delete_slot slot
+      slot.delete
+      success
+    end
   end
 
   get '/transcoders/:id/net-config' do
@@ -108,7 +115,12 @@ class TranscoderManager < Sinatra::Base
   end
 
   delete '/sources/:id' do
-    get_model(params[:id], Source).delete and success
+    source = get_model(params[:id], Source)
+    if Scheme.source_in_use? source
+      config_integrity_error "Source #{source.name} is in use. Can not delete."
+    else
+      source.delete and success
+    end
   end
 
   # --- Presets ---
@@ -147,7 +159,12 @@ class TranscoderManager < Sinatra::Base
   end
 
   delete '/presets/:id' do
-    get_model(params[:id], Preset).delete and success
+    preset = get_model(params[:id], Preset)
+    if Scheme.preset_in_use? preset
+      config_integrity_error "Preset #{preset.name} is in use. Can not delete."
+    else
+      preset.delete and success
+    end
   end
 
   # --- Schemes ---
@@ -248,13 +265,21 @@ class TranscoderManager < Sinatra::Base
   end
 
   def validation_error(errors)
-    request.body.rewind  # in case someone already read it
-    logger.info "Validation error: #{errors}"
-    logger.debug "request.body= #{request.body.read}"
-
-    status 400
-    headers 'X-Status-Reason' => 'Validation failed'
-    errors.to_json
+    custom_error 'Validation', 'Validation failed', errors
   end
+
+  def config_integrity_error(msg)
+    custom_error 'Configuration', 'Configuration constraint failed', msg
+  end
+
+  def custom_error(type, reason, error)
+  request.body.rewind  # in case someone already read it
+  logger.info "#{type} error: #{error}"
+  logger.debug "request.body= #{request.body.read}"
+
+  status 400
+  headers 'X-Status-Reason' => reason
+  error.is_a?(String) ? {error: error}.to_json : error.to_json
+end
 
 end

@@ -131,6 +131,24 @@ class TestEvent < Test::Unit::TestCase
     assert_in_epsilon Time.now.to_i, state[:last], 5
   end
 
+  def test_slot_in_use?
+    scheme = create(:scheme)
+    all_slots = []
+    2.times do
+      txcoder = create(:transcoder)
+      all_slots += 3.times.map { |i| Slot.create(slot_id: i, transcoder: txcoder, scheme: scheme) }
+    end
+
+    events = 2.times.map { |i| Event.create(name: "event_#{i}") }
+    events.each { |event| all_slots.each { |slot| event.add_slot slot }}
+    all_slots.each { |slot| assert Event.slot_in_use? slot }
+
+    slot = Slot.create(slot_id: 100, transcoder: create(:transcoder), scheme: scheme)
+    assert_false Event.slot_in_use? slot
+
+    events.each { |event| event.delete }
+    all_slots.each { |slot| assert_false Event.slot_in_use? slot }
+  end
 
 end
 

@@ -1,8 +1,8 @@
+require_relative '../test_helper.rb'
 require 'webmock/test_unit'
 require 'rack/test'
 require_relative '../../app'
 require_relative '../../app_config'
-require_relative '../test_helper.rb'
 
 module AcceptanceHelper
   include Rack::Test::Methods
@@ -31,9 +31,17 @@ module AcceptanceHelper
   end
 
   def assert_validation_error(resp)
+    assert_custom_error resp, 'Validation failed'
+  end
+
+  def assert_configuration_error(resp)
+    assert_custom_error resp, 'Configuration'
+  end
+
+  def assert_custom_error(resp, reason)
     assert_equal 400, resp.status
     assert resp.header['Content-Type'].include?('application/json')
-    assert resp.header['X-Status-Reason'].include?('Validation failed')
+    assert_match /#{reason}/, resp.header['X-Status-Reason']
     body = JSON.parse resp.body
     assert_false body.empty?
     body

@@ -217,6 +217,32 @@ class ConfigTest < Test::Unit::TestCase
     assert_not_nil scheme
   end
 
+  def test_delete_scheme_source
+    preset = create(:preset)
+    source = create(:source)
+    post '/schemes', { name: 'scheme1',
+                       source1_id: source.id,
+                       preset_id: preset.id,
+                       audio_mappings: (0..preset.tracks.size).to_a }
+    scheme = assert_successful last_response
+
+    delete "/sources/#{scheme['src1_id']}"
+    assert_configuration_error last_response
+  end
+
+  def test_delete_scheme_preset
+    preset = create(:preset)
+    source = create(:source)
+    post '/schemes', { name: 'scheme1',
+                       source1_id: source.id,
+                       preset_id: preset.id,
+                       audio_mappings: (0..preset.tracks.size).to_a }
+    scheme = assert_successful last_response
+
+    delete "/presets/#{scheme['preset_id']}"
+    assert_configuration_error last_response
+  end
+
   # --- Events ---
 
   def test_create_event
@@ -277,23 +303,20 @@ class ConfigTest < Test::Unit::TestCase
     t1 = create(:transcoder)
     t2 = create(:transcoder)
     scheme = create(:scheme)
-    slot1 = Slot.create(slot_id: 1, transcoder: t1, scheme: scheme)
-    slot2 = Slot.create(slot_id: 1, transcoder: t2, scheme: scheme)
+    slot = Slot.create(slot_id: 1, transcoder: t1, scheme: scheme)
 
-    post '/events', {name: 'event1', slots: [slot1.id, slot2.id]}
+    post '/events', {name: 'event1'}
     event = assert_successful last_response
     assert_not_nil event
-
+    post "/events/#{event['id']}/slots", slot_id: slot.id
+    assert_successful last_response
+    delete "/transcoders/#{t1.id}"
+    assert_configuration_error last_response
     delete "/transcoders/#{t2.id}"
     assert_successful last_response
 
-    # TODO: uncomment below once we protect from deleting active configurations.
-
-    #get "/events/#{event['id']}"
-    #event = assert_successful last_response
-    #assert_not_nil event
-    #assert_equal 1, event.slots.size
-    #assert_equal t1.id, event.slots[0]['transcoder_id']
+    delete "/transcoders/#{t1.id}/slots/#{slot.id}"
+    assert_configuration_error last_response
   end
 
 end

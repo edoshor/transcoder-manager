@@ -20,5 +20,26 @@ class TestScheme < Test::Unit::TestCase
     end
   end
 
+  def test_source_in_use
+    scheme1 = create(:scheme)
+    scheme2 = create(:scheme)
+
+    assert Scheme.source_in_use? scheme1.src1
+    assert Scheme.source_in_use? scheme1.src2
+    assert Scheme.source_in_use? scheme2.src1
+    assert Scheme.source_in_use? scheme2.src2
+
+    assert_false Scheme.source_in_use? create(:source)
+  end
+
+  def test_preset_in_use
+    scheme1 = create(:scheme)
+    scheme2 = create(:scheme)
+
+    assert Scheme.preset_in_use? scheme1.preset
+    assert Scheme.preset_in_use? scheme2.preset
+
+    assert_false Scheme.preset_in_use? create(:preset)
+  end
 end
 

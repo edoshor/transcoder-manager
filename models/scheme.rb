@@ -77,4 +77,12 @@ class Scheme < Ohm::Model
              src1: src1, src2: src2, preset: preset, audio_mappings: status[:tracks])
     end
   end
+
+  def self.source_in_use?(source)
+    !find(src1_id: source.id).empty? || !find(src2_id: source.id).empty?
+  end
+
+  def self.preset_in_use?(preset)
+    !find(preset_id: preset.id).empty?
+  end
 end
