@@ -16,7 +16,7 @@ class Track < Ohm::Model
 
   def validate
     assert_numeric :gain
-    assert gain.between?(0, 50) , [:gain, :not_in_range]
+    #assert gain.between?(0, 50) , [:gain, :not_in_range]
     assert_numeric :num_channels
     assert num_channels.between?(0, 2) , [:num_channels, :not_in_range]
     assert_numeric :profile_number
@@ -26,7 +26,7 @@ class Track < Ohm::Model
       assert gain == 0, [:gain, :should_be_zero_for_video]
       assert profile_number.between?(1, 100), [:profile_number, :not_in_range_for_video]
     else
-      assert gain.to_i > 0, [:gain, :should_not_be_zero_for_audio]
+      #assert gain.to_i > 0, [:gain, :should_not_be_zero_for_audio]
       assert profile_number.between?(101, 254), [:profile_number, :not_in_range_for_audio]
     end
   end
@@ -44,6 +44,10 @@ class Track < Ohm::Model
 
   def to_a
     [profile_number, num_channels, gain, 0]
+  end
+
+  def is_video?
+    num_channels == 0
   end
 
   def self.from_a(track)
