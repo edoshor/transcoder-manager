@@ -3,6 +3,28 @@ require_relative '../test_helper'
 class TestPreset < Test::Unit::TestCase
   include TestHelper
 
+  def test_set_tracks
+    preset = Preset.new(name: 'test_preset')
+    assert_raise_message('not enough tracks') {
+      preset.set_tracks([{gain: 0, num_channels: 0, profile_number: 1}])
+    }
+    assert_raise_message('invalid tracks') {
+      preset.set_tracks([{gain: 0, num_channels: 0},
+                         {gain: 0, num_channels: 0, profile_number: 1}])
+    }
+    assert_raise_message('invalid tracks sequence') {
+      preset.set_tracks([{gain: 100, num_channels: 1, profile_number: 101},
+                         {gain: 0, num_channels: 0, profile_number: 1}])
+    }
+
+    assert_true preset.new?
+    preset.set_tracks([{gain: 0, num_channels: 0, profile_number: 1},
+                       {gain: 100, num_channels: 1, profile_number: 101}])
+    assert_false preset.new?
+    assert_equal 2, preset.tracks.size
+    preset.tracks.each {|t| assert_false t.new?}
+  end
+
   def test_match
     presets = create_list(:preset, 10)
     presets.each do |p|

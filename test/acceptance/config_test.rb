@@ -203,6 +203,24 @@ class ConfigTest < Test::Unit::TestCase
     end
   end
 
+  def test_create_preset_error
+    atts = attributes_for(:preset)
+
+    atts[:tracks] = [{gain: 0, num_channels: 0, profile_number: 1}]
+    post '/presets', atts
+    assert_validation_error last_response
+
+    atts[:tracks] = [{gain: 0, num_channels: 0},
+                     {gain: 0, num_channels: 0, profile_number: 1}]
+    post '/presets', atts
+    assert_validation_error last_response
+
+    atts[:tracks] = [{gain: 100, num_channels: 1, profile_number: 101},
+                     {gain: 0, num_channels: 0, profile_number: 1}]
+    post '/presets', atts
+    assert_validation_error last_response
+  end
+
   # --- Schemes ---
 
   def test_create_scheme

@@ -65,7 +65,7 @@ class TranscoderManager < Sinatra::Base
   end
 
   get '/transcoders/:id/slots/:id' do |tid, sid|
-    pass unless sid =~ /\d+/  # pass non numeric ids
+    pass unless sid =~ /\d+/ # pass non numeric ids
 
     transcoder = get_model(tid, Transcoder)
     slot = transcoder.slots[sid]
@@ -135,15 +135,11 @@ class TranscoderManager < Sinatra::Base
 
     preset = Preset.new(name: name)
     if preset.valid?
-      invalid_tracks = tracks.select { |track| not Track.new(track).valid? }
-      if invalid_tracks.empty?
-        preset.save
-        tracks.each { |track| preset.tracks.push Track.create(track) }
+      begin
+        preset.set_tracks tracks
         preset.to_hash.to_json
-      else
-        track = Track.new(invalid_tracks[0])
-        track.valid?
-        validation_error track.errors
+      rescue Exception => e
+        validation_error e.message
       end
     else
       validation_error preset.errors
@@ -278,13 +274,13 @@ class TranscoderManager < Sinatra::Base
   end
 
   def custom_error(type, reason, error)
-  request.body.rewind  # in case someone already read it
-  logger.info "#{type} error: #{error}"
-  logger.debug "request.body= #{request.body.read}"
+    request.body.rewind # in case someone already read it
+    logger.info "#{type} error: #{error}"
+    logger.debug "request.body= #{request.body.read}"
 
-  status 400
-  headers 'X-Status-Reason' => reason
-  error.is_a?(String) ? {error: error}.to_json : error.to_json
-end
+    status 400
+    headers 'X-Status-Reason' => reason
+    error.is_a?(String) ? {error: error}.to_json : error.to_json
+  end
 
 end
