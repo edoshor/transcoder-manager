@@ -5,8 +5,9 @@ class TranscodingTest < Test::Unit::TestCase
 
   def test_start_slot
     post '/transcoders', name: 'transcoder1', host: '10.65.6.104'
-    post '/sources', name: 'source1', host: '192.168.2.1', port: 3000
-    post '/sources', name: 'source2', host: '192.168.2.1', port: 3001
+    post '/captures', name: 'capture1', host: '192.168.2.1', input1:3000, input2: 3001
+    post '/sources', name: 'source1', capture_id: 1, input:1
+    post '/sources', name: 'source2', capture_id: 1, input:2
     post '/presets', name: 'preset1', tracks: [
         {gain: 0, num_channels: 0, profile_number: 1},
         {gain: 10, num_channels: 2, profile_number: 101},

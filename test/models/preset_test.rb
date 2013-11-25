@@ -5,17 +5,17 @@ class TestPreset < Test::Unit::TestCase
 
   def test_set_tracks
     preset = Preset.new(name: 'test_preset')
-    assert_raise_message('not enough tracks') {
+    assert_raise_message('not enough tracks') do
       preset.set_tracks([{gain: 0, num_channels: 0, profile_number: 1}])
-    }
-    assert_raise_message('invalid tracks') {
+    end
+    assert_raise_message('invalid tracks') do
       preset.set_tracks([{gain: 0, num_channels: 0},
                          {gain: 0, num_channels: 0, profile_number: 1}])
-    }
-    assert_raise_message('invalid tracks sequence') {
+    end
+    assert_raise_message('invalid tracks sequence') do
       preset.set_tracks([{gain: 100, num_channels: 1, profile_number: 101},
                          {gain: 0, num_channels: 0, profile_number: 1}])
-    }
+    end
 
     assert_true preset.new?
     preset.set_tracks([{gain: 0, num_channels: 0, profile_number: 1},

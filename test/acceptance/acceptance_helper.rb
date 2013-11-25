@@ -30,6 +30,14 @@ module AcceptanceHelper
     assert_match(text, resp.body)
   end
 
+  def assert_json_eq(model, json)
+    assert_equal JSON.parse(model.to_hash.to_json), json
+  end
+
+  def assert_successful_eq(model, resp)
+    assert_json_eq model, assert_successful(resp)
+  end
+
   def assert_validation_error(resp)
     assert_custom_error resp, 'Validation failed'
   end

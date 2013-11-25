@@ -36,9 +36,9 @@ class Transcoder < Ohm::Model
     assert_present :name
     assert_present :host
     assert_numeric :port
-    assert port.between?(0, 65365), [:port, :not_in_range]
+    assert port.between?(1, 65365), [:port, :not_in_range]
     assert_numeric :status_port
-    assert status_port.between?(0, 65365), [:status_port, :not_in_range]
+    assert status_port.between?(1, 65365), [:status_port, :not_in_range]
     assert_format :host, Resolv::IPv4::Regex, [:host, :not_valid_ipv4]
   end
 

@@ -104,6 +104,10 @@ class ConfigTest < Test::Unit::TestCase
     assert_equal 0, Slot.all.size
   end
 
+  # --- Captures ---
+
+  # TODO complete tests
+
   # --- Sources ---
 
   def test_get_sources
@@ -111,53 +115,46 @@ class ConfigTest < Test::Unit::TestCase
     body = assert_successful last_response
     assert_empty body
 
-    source1 = create(:source)
-    source2 = create(:source)
+    sources = 5.times.map { create(:source) }
     get '/sources'
     body = assert_successful last_response
     assert_not_nil body
-    assert_equal 2, body.length
-    assert_equal '1', body[0]['id']
-    assert_equal source1.name, body[0]['name']
-    assert_equal source1.host, body[0]['host']
-    assert_equal source1.port, body[0]['port']
-    assert_equal '2', body[1]['id']
-    assert_equal source2.name, body[1]['name']
-    assert_equal source2.host, body[1]['host']
-    assert_equal source2.port, body[1]['port']
+    assert_equal sources.length, body.length
+    sources.zip(body).each { |source, source_json| assert_json_eq source, source_json}
   end
 
   def test_create_source
-    attributes = attributes_for(:source)
-    post '/sources', attributes
+    capture = create(:capture)
+    post '/sources', {name: 'source1', capture_id: capture.id, input: 1}
     source = assert_successful last_response
     assert_not_nil source
     assert_equal '1', source['id']
-    assert_equal attributes[:name], source['name']
-    assert_equal attributes[:host], source['host']
-    assert_equal attributes[:port], source['port'].to_i
+    assert_equal 'source1', source['name']
+    assert_equal capture.id, source['capture_id']
+    assert_equal 1, source['input'].to_i
   end
 
   def test_create_source_validations
-    post '/sources', name: 'source3', host: '192.168.2.1'
+    post '/sources', name: 'source3', capture_id: '1'
     body = assert_api_error last_response
-    assert_match(/expecting port/, body)
+    assert_match(/expecting input/, body)
 
-    post '/sources', name: 'source3', port: 3000
+    post '/sources', name: 'source3', input: 1
     body = assert_api_error last_response
-    assert_match(/expecting host/, body)
+    assert_match(/expecting capture_id/, body)
 
-    post '/sources', host: '192.168.2.1', port: 3000
+    post '/sources', capture_id: '1', input: 4
     body = assert_api_error last_response
     assert_match(/expecting name/, body)
 
-    post '/sources', name: 'source3', host: '192.168.2.1', port: 99999
-    body = assert_validation_error last_response
-    assert_equal 'not_in_range', body['port'][0]
+    post '/sources', name: 'source3', capture_id: '1', input: 5
+    body = assert_api_error last_response
+    assert_match(/Unknown Capture/, body)
 
-    post '/sources', name: 'source3', host: '192.168.2.1.1', port: 3000
+    capture = create(:capture)
+    post '/sources', name: 'source3', capture_id: capture.id, input: 5
     body = assert_validation_error last_response
-    assert_equal 'not_valid_ipv4', body['host'][0]
+    assert_equal 'not_in_range', body['input'][0]
   end
 
   def test_get_source
@@ -165,11 +162,9 @@ class ConfigTest < Test::Unit::TestCase
     body = assert_api_error last_response
     assert_match(/Unknown Source/, body)
 
-    post '/sources', attributes_for(:source)
-    source = assert_successful last_response
-    get "/sources/#{source['id']}"
-    body = assert_successful last_response
-    assert_equal source, body
+    source = create(:source)
+    get "/sources/#{source.id}"
+    assert_successful_eq source, last_response
   end
 
   def test_delete_source

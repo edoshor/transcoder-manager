@@ -95,6 +95,36 @@ class TranscoderManager < Sinatra::Base
     raise 'not implemented'
   end
 
+  # --- Captures ---
+
+  get '/captures' do
+    all_to_json Capture
+  end
+
+  post '/captures' do
+    name, host = expect_params 'name', 'host'
+    atts = {name: name, host: host}
+    (1..4).map { |i| "input#{i}" }.each { |i| atts.store(i.to_sym, params[i]) if params[i] }
+    save_model Capture.new(atts)
+  end
+
+  get '/captures/:id' do
+    get_model(params[:id], Capture).to_hash.to_json
+  end
+
+  put '/captures/:id' do
+    raise ApiError, 'Operation not supported'
+  end
+
+  delete '/captures/:id' do
+    capture = get_model(params[:id], Capture)
+    if Source.find(capture: capture).any? { |source| Scheme.source_in_use? source }
+      config_integrity_error "Capture #{capture.name} is in use. Can not delete."
+    else
+      source.delete and success
+    end
+  end
+
   # --- Sources ---
 
   get '/sources' do
@@ -102,8 +132,10 @@ class TranscoderManager < Sinatra::Base
   end
 
   post '/sources' do
-    name, host, port = expect_params 'name', 'host', 'port'
-    save_model Source.new(name: name, host: host, port: port)
+    name, capture_id, input = expect_params 'name', 'capture_id', 'input'
+    save_model Source.new(name: name,
+                          capture: get_model(capture_id, Capture),
+                          input: input)
   end
 
   get '/sources/:id' do

@@ -1,37 +1,44 @@
 require 'ohm'
 require 'ohm/datatypes'
-require 'resolv'
 
 class Source < Ohm::Model
   include Ohm::DataTypes
 
   attribute :name
-  attribute :host
-  attribute :port, Type::Integer
+  reference :capture, :Capture
+  attribute :input, Type::Integer
 
   unique :name
-  index :host
-  index :port
+  index :input
 
   def validate
     assert_present :name
-    assert_present :host
-    assert_numeric :port
-    assert port.to_i.between?(0, 65365), [:port, :not_in_range]
-    assert_format :host, Resolv::IPv4::Regex, [:host, :not_valid_ipv4]
+    assert_present :capture
+    assert_numeric :input
+    assert input.to_i.between?(1, 4), [:input, :not_in_range]
   end
 
   def to_hash
-    super.merge(name: name, host: host, port: port)
+    super.merge(name: name, capture_id: capture.id, input: input)
   end
 
   def to_s
-    "Source: name=#{name}, host=#{host}, port=#{port}"
+    "Source: name=#{name}, capture=#{capture.name}, input=#{input}"
+  end
+
+  def host
+    capture.host
+  end
+
+  def port
+    capture.port(input)
   end
 
   def self.match_or_create(host, port)
-    source = find(host: host, port: port).first
-    source ? source : create(name: "unknown_source_#{SecureRandom.hex(2)}", host: host, port: port)
+    capture = Capture.match_or_create(host, port)
+    input = capture.input(port)
+    source = find(capture_id: capture.id, input: input).first
+    source ? source : create(name: "unknown_source_#{SecureRandom.hex(2)}", capture: capture, input: input)
   end
 
 end
