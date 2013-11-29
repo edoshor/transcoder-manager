@@ -118,10 +118,10 @@ class TranscoderManager < Sinatra::Base
 
   delete '/captures/:id' do
     capture = get_model(params[:id], Capture)
-    if Source.find(capture: capture).any? { |source| Scheme.source_in_use? source }
-      config_integrity_error "Capture #{capture.name} is in use. Can not delete."
+    if Source.find(capture_id: capture.id).empty?
+      capture.delete and success
     else
-      source.delete and success
+      config_integrity_error "Capture #{capture.name} is in use. Can not delete."
     end
   end
 

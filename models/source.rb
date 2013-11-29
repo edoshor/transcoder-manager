@@ -19,7 +19,10 @@ class Source < Ohm::Model
   end
 
   def to_hash
-    super.merge(name: name, capture_id: capture.id, input: input)
+    super.merge(name: name,
+                capture_id: capture.id,
+                capture_name: capture.name,
+                input: input)
   end
 
   def to_s
