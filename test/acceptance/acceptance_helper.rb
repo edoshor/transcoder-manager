@@ -34,6 +34,11 @@ module AcceptanceHelper
     assert_equal JSON.parse(model.to_hash.to_json), json
   end
 
+  def assert_attributes_eq(atts, model)
+    assert_compare 0, '<', model.delete('id').to_i
+    atts.each { |k,v| assert_equal v, model.fetch(k.to_s) }
+  end
+
   def assert_successful_eq(model, resp)
     assert_json_eq model, assert_successful(resp)
   end

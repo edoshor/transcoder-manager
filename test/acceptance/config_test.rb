@@ -6,27 +6,22 @@ class ConfigTest < Test::Unit::TestCase
   # --- Transcoders ---
 
   def test_create_transcoder
-    post '/transcoders', name: 'transcoder1', host: '10.65.6.104'
-    body = assert_successful last_response
-    assert_not_nil body
-    assert_equal '1', body['id']
-    assert_equal 'transcoder1', body['name']
-    assert_equal '10.65.6.104', body['host']
-    assert_equal DEFAULT_PORT, body['port']
-    assert_equal DEFAULT_STATUS_PORT, body['status_port']
+    atts = attributes_for(:transcoder)
+    post '/transcoders', atts
+    txcoder = assert_successful last_response
+    assert_attributes_eq atts, txcoder
   end
 
   def test_transcoder_create_slot
     transcoder = create(:transcoder)
     scheme = create(:scheme)
-    post "/transcoders/#{transcoder.id}/slots", slot_id: 10, scheme_id: scheme.id
-    body = assert_successful last_response
-    assert_equal '1', body['id']
-    assert_equal 10, body['slot_id']
-    assert_equal transcoder.id, body['transcoder_id']
-    assert_equal transcoder.name, body['transcoder_name']
-    assert_equal scheme.id, body['scheme_id']
-    assert_equal scheme.name, body['scheme_name']
+    atts = {slot_id: 10, scheme_id: scheme.id}
+    post "/transcoders/#{transcoder.id}/slots", atts
+    slot = assert_successful last_response
+    assert_attributes_eq atts, slot
+    assert_equal transcoder.id, slot['transcoder_id']
+    assert_equal transcoder.name, slot['transcoder_name']
+    assert_equal scheme.name, slot['scheme_name']
   end
 
   def test_transcoder_get_slots
@@ -106,7 +101,33 @@ class ConfigTest < Test::Unit::TestCase
 
   # --- Captures ---
 
-  # TODO complete tests
+  def test_create_capture
+    atts = attributes_for(:capture)
+    post '/captures', atts
+    capture = assert_successful last_response
+    assert_attributes_eq atts, capture
+  end
+
+  def test_get_capture
+    get '/captures/1'
+    body = assert_api_error last_response
+    assert_match(/Unknown Capture/, body)
+
+    capture = create(:capture)
+    get "/captures/#{capture.id}"
+    assert_successful_eq capture, last_response
+  end
+
+  def test_delete_capture
+    delete '/captures/1'
+    body = assert_api_error last_response
+    assert_match(/Unknown Capture/, body)
+
+    capture = create(:capture)
+    delete "/captures/#{capture.id}"
+    body = assert_successful last_response
+    assert body['result'].include? 'success'
+  end
 
   # --- Sources ---
 
@@ -125,13 +146,11 @@ class ConfigTest < Test::Unit::TestCase
 
   def test_create_source
     capture = create(:capture)
-    post '/sources', {name: 'source1', capture_id: capture.id, input: 1}
+    atts = {name: 'source1', capture_id: capture.id, input: 1}
+    post '/sources', atts
     source = assert_successful last_response
-    assert_not_nil source
-    assert_equal '1', source['id']
-    assert_equal 'source1', source['name']
-    assert_equal capture.id, source['capture_id']
-    assert_equal 1, source['input'].to_i
+    assert_attributes_eq atts, source
+    assert_equal capture.name, source['capture_name']
   end
 
   def test_create_source_validations
@@ -221,11 +240,11 @@ class ConfigTest < Test::Unit::TestCase
   def test_create_scheme
     preset = create(:preset)
     source = create(:source)
-    post '/schemes', { name: 'scheme1',
-                       source1_id: source.id,
-                       preset_id: preset.id,
-                       audio_mappings: (0..preset.tracks.size).to_a }
-
+    atts = {name: 'scheme1',
+            source1_id: source.id,
+            preset_id: preset.id,
+            audio_mappings: (0..preset.tracks.size).to_a}
+    post '/schemes', atts
     scheme = assert_successful last_response
     assert_not_nil scheme
   end
@@ -259,10 +278,10 @@ class ConfigTest < Test::Unit::TestCase
   # --- Events ---
 
   def test_create_event
-    post '/events', {name: 'event1'}
+    atts = {name: 'event1'}
+    post '/events', atts
     event = assert_successful last_response
-    assert_not_nil event
-    assert_equal 'event1', event['name']
+    assert_attributes_eq atts, event
   end
 
   def test_event_add_slot
