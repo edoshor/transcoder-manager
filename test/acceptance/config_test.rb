@@ -127,6 +127,10 @@ class ConfigTest < Test::Unit::TestCase
     delete "/captures/#{capture.id}"
     body = assert_successful last_response
     assert body['result'].include? 'success'
+
+    source = create(:source)
+    delete "/captures/#{source.capture.id}"
+    assert_configuration_error last_response
   end
 
   # --- Sources ---
