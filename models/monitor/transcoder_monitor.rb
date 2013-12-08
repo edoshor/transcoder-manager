@@ -52,7 +52,8 @@ class TranscoderMonitor
         warn resp ? "Load Status Error: #{resp.code}, #{resp.message}" : 'Max number of errors occurred'
       end
     rescue => ex
-      warn format_exception ex
+      #warn format_exception ex
+      warn ex.message
     end
   end
 
