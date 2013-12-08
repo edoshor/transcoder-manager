@@ -17,6 +17,16 @@ class Preset < Ohm::Model
     "Preset: name=#{name}, track_cnt=#{tracks.size}"
   end
 
+  def set_tracks(tracks_details)
+    new_tracks = tracks_details.map { |t| Track.new(t) }
+    raise 'not enough tracks' unless new_tracks.length > 1
+    raise 'invalid tracks' unless new_tracks.all? { |t| t.valid?  }
+    raise 'invalid tracks sequence' unless new_tracks[0].is_video? && new_tracks[1].is_audio?
+
+    save
+    new_tracks.each { |t| t.save and tracks.push t }
+  end
+
   def self.match(profiles)
     Preset.all.detect { |p| profiles == p.tracks.map { |t| t.to_a } }
   end

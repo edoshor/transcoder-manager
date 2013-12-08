@@ -14,15 +14,15 @@ require 'ohm'
 require 'log4r'
 require 'log4r/yamlconfigurator'
 require 'log4r/outputter/datefileoutputter'
+
+require 'celluloid/test'
+Celluloid.boot
+
 require_relative '../models/init'
 require_relative 'factories'
 
 module TestHelper
   include FactoryGirl::Syntax::Methods
-
-  if defined?(Celluloid)
-    Celluloid.shutdown
-  end
 
   def self.startup
     # initialize logging

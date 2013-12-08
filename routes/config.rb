@@ -65,7 +65,7 @@ class TranscoderManager < Sinatra::Base
   end
 
   get '/transcoders/:id/slots/:id' do |tid, sid|
-    pass unless sid =~ /\d+/  # pass non numeric ids
+    pass unless sid =~ /\d+/ # pass non numeric ids
 
     transcoder = get_model(tid, Transcoder)
     slot = transcoder.slots[sid]
@@ -95,6 +95,36 @@ class TranscoderManager < Sinatra::Base
     raise 'not implemented'
   end
 
+  # --- Captures ---
+
+  get '/captures' do
+    all_to_json Capture
+  end
+
+  post '/captures' do
+    name, host = expect_params 'name', 'host'
+    atts = {name: name, host: host}
+    (1..4).map { |i| "input#{i}" }.each { |i| atts.store(i.to_sym, params[i]) if params[i] }
+    save_model Capture.new(atts)
+  end
+
+  get '/captures/:id' do
+    get_model(params[:id], Capture).to_hash.to_json
+  end
+
+  put '/captures/:id' do
+    raise ApiError, 'Operation not supported'
+  end
+
+  delete '/captures/:id' do
+    capture = get_model(params[:id], Capture)
+    if Source.find(capture_id: capture.id).empty?
+      capture.delete and success
+    else
+      config_integrity_error "Capture #{capture.name} is in use. Can not delete."
+    end
+  end
+
   # --- Sources ---
 
   get '/sources' do
@@ -102,8 +132,10 @@ class TranscoderManager < Sinatra::Base
   end
 
   post '/sources' do
-    name, host, port = expect_params 'name', 'host', 'port'
-    save_model Source.new(name: name, host: host, port: port)
+    name, capture_id, input = expect_params 'name', 'capture_id', 'input'
+    save_model Source.new(name: name,
+                          capture: get_model(capture_id, Capture),
+                          input: input)
   end
 
   get '/sources/:id' do
@@ -135,15 +167,11 @@ class TranscoderManager < Sinatra::Base
 
     preset = Preset.new(name: name)
     if preset.valid?
-      invalid_tracks = tracks.select { |track| not Track.new(track).valid? }
-      if invalid_tracks.empty?
-        preset.save
-        tracks.each { |track| preset.tracks.push Track.create(track) }
+      begin
+        preset.set_tracks tracks
         preset.to_hash.to_json
-      else
-        track = Track.new(invalid_tracks[0])
-        track.valid?
-        validation_error track.errors
+      rescue Exception => e
+        validation_error e.message
       end
     else
       validation_error preset.errors
@@ -278,13 +306,13 @@ class TranscoderManager < Sinatra::Base
   end
 
   def custom_error(type, reason, error)
-  request.body.rewind  # in case someone already read it
-  logger.info "#{type} error: #{error}"
-  logger.debug "request.body= #{request.body.read}"
+    request.body.rewind # in case someone already read it
+    logger.info "#{type} error: #{error}"
+    logger.debug "request.body= #{request.body.read}"
 
-  status 400
-  headers 'X-Status-Reason' => reason
-  error.is_a?(String) ? {error: error}.to_json : error.to_json
-end
+    status 400
+    headers 'X-Status-Reason' => reason
+    error.is_a?(String) ? {error: error}.to_json : error.to_json
+  end
 
 end

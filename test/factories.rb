@@ -1,9 +1,18 @@
 FactoryGirl.define do
 
+  factory :capture do
+    sequence(:name) { |n| "capture#{n}" }
+    sequence(:host) { |n| "192.168.2.#{n}" }
+    input1 { rand(1..65365) }
+    input2 { rand(1..65365) }
+    input3 { rand(1..65365) }
+    input4 { rand(1..65365) }
+  end
+
   factory :source do
     sequence(:name) { |n| "source#{n}" }
-    sequence(:port) { |n| 3000 + n }
-    host '192.168.2.1'
+    association :capture, factory: :capture, strategy: :create
+    input { rand(1..4) }
   end
 
   factory :preset do
