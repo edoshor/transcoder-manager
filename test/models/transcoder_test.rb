@@ -95,6 +95,12 @@ class TestTranscoder < Test::Unit::TestCase
     assert_equal scheme, transcoder.slots.first.scheme
   end
 
+  def test_self_create_from_hash
+    transcoder = create(:transcoder)
+    other = Transcoder.create_from_hash(transcoder.to_hash)
+    assert_equal transcoder.to_hash, other.to_hash
+  end
+
   private
 
   def transcoder_with_api_mock

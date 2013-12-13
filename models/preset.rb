@@ -35,11 +35,18 @@ class Preset < Ohm::Model
     match(profiles) or create_unknown(profiles)
   end
 
+  def self.create_from_hash(atts)
+    profiles = atts.delete(:tracks)
+    preset = Preset.create(atts)
+    profiles.map { |p| preset.tracks.push Track.create_from_hash(p) }
+    preset
+  end
+
   private
 
   def self.create_unknown(profiles)
     preset = Preset.create(name: "unknown_preset_#{SecureRandom.hex(2)}")
-    profiles.each { |t| preset.tracks.push Track.from_a(t).save }
+    profiles.each { |t| preset.tracks.push Track.from_a(t).save } unless profiles.blank?
     preset
   end
 

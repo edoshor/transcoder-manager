@@ -56,4 +56,8 @@ class Track < Ohm::Model
     Track.new profile_number: track[0], num_channels: track[1], gain: track[2]
   end
 
+  def self.create_from_hash(atts)
+    Track.create(atts)
+  end
+
 end

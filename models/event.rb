@@ -61,4 +61,11 @@ class Event < Ohm::Model
     Event.all.any? { |event| event.slots.include? slot }
   end
 
+  def self.create_from_hash(atts)
+    slot_ids = atts.delete(:slots)
+    event = Event.create(atts)
+    slot_ids.each { |x| event.slots.push Slot[x] } unless slot_ids.blank?
+    event
+  end
+
 end

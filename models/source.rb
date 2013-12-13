@@ -44,4 +44,10 @@ class Source < Ohm::Model
     source ? source : create(name: "unknown_source_#{SecureRandom.hex(2)}", capture: capture, input: input)
   end
 
+  def self.create_from_hash(atts)
+    atts.delete(:capture_name)
+    atts[:capture] = Capture[atts.delete(:capture_id)]
+    Source.create(atts)
+  end
+
 end

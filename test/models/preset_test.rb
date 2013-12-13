@@ -43,5 +43,11 @@ class TestPreset < Test::Unit::TestCase
     assert_equal profiles, match.tracks.map { |t| t.to_a }
   end
 
+  def test_self_create_from_hash
+    preset = create(:preset)
+    other = Preset.create_from_hash(preset.to_hash)
+    assert_equal preset.to_hash, other.to_hash
+  end
+
 end
 

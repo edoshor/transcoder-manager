@@ -19,7 +19,7 @@ class Capture < Ohm::Model
     assert_present :name
     assert_present :host
     assert_format :host, Resolv::IPv4::Regex, [:host, :not_valid_ipv4]
-    (1..4).each { |i| validate_port "input#{i}".to_sym() }
+    (1..4).each { |i| validate_port "input#{i}".to_sym }
   end
 
   def validate_port(port)
@@ -90,6 +90,10 @@ class Capture < Ohm::Model
 
     capture = create_unknown(host)
     capture.add_port(port) and return capture
+  end
+
+  def self.create_from_hash(atts)
+    Capture.create(atts)
   end
 
   private

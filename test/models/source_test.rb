@@ -17,5 +17,11 @@ class TestSource < Test::Unit::TestCase
 
   end
 
+  def test_self_create_from_hash
+    source = create(:source)
+    other = Source.create_from_hash(source.to_hash)
+    assert_equal source.to_hash, other.to_hash
+  end
+
 end
 

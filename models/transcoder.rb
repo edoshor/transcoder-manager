@@ -202,6 +202,10 @@ class Transcoder < Ohm::Model
     errors
   end
 
+  def self.create_from_hash(atts)
+    Transcoder.create(atts)
+  end
+
   private
 
   def call_api(method, *args)

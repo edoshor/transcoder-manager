@@ -41,5 +41,11 @@ class TestScheme < Test::Unit::TestCase
 
     assert_false Scheme.preset_in_use? create(:preset)
   end
+
+  def test_self_create_from_hash
+    scheme = create(:scheme)
+    other = Scheme.create_from_hash(scheme.to_hash)
+    assert_equal scheme.to_hash, other.to_hash
+  end
 end
 

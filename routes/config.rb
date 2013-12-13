@@ -273,6 +273,38 @@ class TranscoderManager < Sinatra::Base
     success
   end
 
+  get '/export' do
+    File.open('tm-config.json', 'w') { |file|
+      conf = %w(capture source preset scheme transcoder slot).inject({}) do |h, x|
+        h["#{x}s"] = all_to_hash(x.camelize.constantize)
+        h
+      end.merge({
+        events: Event.all.map { |event| event.to_hash.merge({slots: event.slots.map(&:id)}) }
+                })
+      file.write(JSON.pretty_generate(conf))
+    }
+
+    send_file 'tm-config.json', filename: 'tm-config.json', type: 'Application/octet-stream'
+  end
+
+  post '/import' do
+    MonitorService.instance.shutdown
+
+    upload = expect_params('file')[0]
+    json = JSON.load upload[:tempfile]
+    raise 'Incomplete configuration' unless \
+       %w(captures sources presets schemes transcoders slots events).all? { |x| json.key? x }
+
+    %w(capture source preset scheme transcoder slot event).each do |e|
+      model = e.camelize.constantize
+      model.all.map &:delete
+      json["#{e}s"].each { |x| model.create_from_hash HashWithIndifferentAccess.new(x) }
+    end
+
+    MonitorService.instance.start
+    success
+  end
+
   private
 
   def get_model(id, clazz)
@@ -293,8 +325,12 @@ class TranscoderManager < Sinatra::Base
     model.update(atts) ? model.to_hash.to_json : validation_error(model.errors)
   end
 
+  def all_to_hash(clazz)
+    clazz.all.map { |m| m.to_hash }
+  end
+
   def all_to_json(clazz)
-    clazz.all.map { |m| m.to_hash }.to_json
+    all_to_hash(clazz).to_json
   end
 
   def validation_error(errors)

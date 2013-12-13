@@ -115,6 +115,14 @@ class TestCapture < Test::Unit::TestCase
 
   end
 
+  def test_self_create_from_hash
+    capture = create(:capture)
+    other = Capture.create_from_hash(capture.to_hash)
+    assert_equal capture.to_hash, other.to_hash
+  end
+
+  private
+
   def assert_invalid(model, att, err)
     assert_false model.valid?
     assert_not_empty model.errors

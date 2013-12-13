@@ -50,4 +50,11 @@ class Slot < Ohm::Model
     find(scheme_id: scheme.id)
   end
 
+  def self.create_from_hash(atts)
+    atts.delete(:transcoder_name)
+    atts.delete(:scheme_name)
+    atts[:transcoder] = Transcoder[atts.delete(:transcoder_id)]
+    atts[:scheme] = Scheme[atts.delete(:scheme_id)]
+    Slot.create(atts)
+  end
 end

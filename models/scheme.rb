@@ -87,4 +87,12 @@ class Scheme < Ohm::Model
   def self.preset_in_use?(preset)
     !find(preset_id: preset.id).empty?
   end
+
+  def self.create_from_hash(atts)
+    %w(preset_name src1_name src2_name).each {|k| atts.delete k.to_sym }
+    atts[:src1] = Source[atts.delete(:src1_id)]
+    atts[:src2] = Source[atts.delete(:src2_id)]
+    atts[:preset] = Preset[atts.delete(:preset_id)]
+    Scheme.create(atts)
+  end
 end

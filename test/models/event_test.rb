@@ -150,5 +150,13 @@ class TestEvent < Test::Unit::TestCase
     all_slots.each { |slot| assert_false Event.slot_in_use? slot }
   end
 
+  def test_self_create_from_hash
+    slot = Slot.create(slot_id: 1, transcoder: create(:transcoder), scheme: create(:scheme))
+    event = Event.create(name: 'event1')
+    event.add_slot slot
+    other = Event.create_from_hash(event.to_hash)
+    assert_equal event.to_hash, other.to_hash
+  end
+
 end
 
