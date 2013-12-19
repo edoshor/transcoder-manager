@@ -1,4 +1,5 @@
 require_relative 'acceptance_helper'
+require 'tempfile'
 
 class ConfigTest < Test::Unit::TestCase
   include AcceptanceHelper
@@ -374,15 +375,79 @@ class ConfigTest < Test::Unit::TestCase
 
   # --- Import Export ---
 
-  def test_export
-    txcoder = create(:transcoder)
+  def test_export_empty
     get '/export'
     resp = last_response
     assert_equal 200, resp.status
     assert_not_nil resp.header['Content-Disposition']
     assert resp.header['Content-Type'].include?('application/json')
     body = JSON.parse resp.body
-    assert_json_eq txcoder, body['transcoders'][0]
+    %w(captures sources presets schemes transcoders slots events).each do |x|
+      assert body.key? x
+      assert_empty body[x]
+    end
+  end
+
+  def test_export
+    scheme = create(:scheme)
+    txcoder = create(:transcoder)
+    slot = Slot.create(slot_id: 1, transcoder: txcoder, scheme: scheme)
+    event = create(:event)
+    event.add_slot slot
+
+    get '/export'
+    config = assert_successful last_response
+    assert_json_eq txcoder, config['transcoders'][0]
+    assert_json_eq scheme, config['schemes'][0]
+    assert_json_eq slot, config['slots'][0]
+    assert_json_eq scheme.preset, config['presets'][0]
+    assert_json_eq scheme.src1, config['sources'][0]
+    assert_json_eq scheme.src2, config['sources'][1]
+    assert_json_eq scheme.src1.capture, config['captures'][0]
+    assert_json_eq scheme.src2.capture, config['captures'][1]
+    assert_equal event.id, config['events'][0]['id']
+    assert_equal event.name, config['events'][0]['name']
+    assert_equal [slot.id], config['events'][0]['slots']
+  end
+
+  def test_import
+    scheme = create(:scheme)
+    txcoder = create(:transcoder)
+    slot = Slot.create(slot_id: 1, transcoder: txcoder, scheme: scheme)
+    event = create(:event)
+    event.add_slot slot
+
+    get '/export'
+    json = last_response.body
+    file = Tempfile.new(%w(tm-config json))
+    begin
+      file.write json
+    ensure
+      file.close
+    end
+
+    create(:scheme) #create another scheme to change the configuration at this step
+
+    begin
+      post '/import', 'file' => Rack::Test::UploadedFile.new(file.path, 'application/json')
+      assert_successful last_response
+    ensure
+      file.unlink
+    end
+
+    get '/export'
+    config = assert_successful last_response
+    assert_json_eq txcoder, config['transcoders'][0]
+    assert_json_eq scheme, config['schemes'][0]
+    assert_json_eq slot, config['slots'][0]
+    assert_json_eq scheme.preset, config['presets'][0]
+    assert_json_eq scheme.src1, config['sources'][0]
+    assert_json_eq scheme.src2, config['sources'][1]
+    assert_json_eq scheme.src1.capture, config['captures'][0]
+    assert_json_eq scheme.src2.capture, config['captures'][1]
+    assert_equal event.id, config['events'][0]['id']
+    assert_equal event.name, config['events'][0]['name']
+    assert_equal [slot.id], config['events'][0]['slots']
   end
 
 end

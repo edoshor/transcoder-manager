@@ -346,11 +346,12 @@ class TranscoderManager < Sinatra::Base
   end
 
   def config_to_json
-    %w(capture source preset scheme transcoder slot)
+    conf = %w(capture source preset scheme transcoder slot)
     .inject(ActiveSupport::OrderedHash.new) { |h, x|
       h.store("#{x}s", all_to_hash(x.camelize.constantize)) and h
     }
-    .store('events', Event.all.map { |event| event.to_hash.merge({slots: event.slots.map(&:id)}) })
+    conf.store('events', Event.all.map { |event| event.to_hash.merge({slots: event.slots.map(&:id)}) })
+    conf
   end
 
   def config_from_json(json)
