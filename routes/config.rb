@@ -1,4 +1,5 @@
 require_relative '../app_config'
+require 'active_support/ordered_hash'
 
 class TranscoderManager < Sinatra::Base
 
@@ -274,35 +275,28 @@ class TranscoderManager < Sinatra::Base
   end
 
   get '/export' do
-    File.open('tm-config.json', 'w') { |file|
-      conf = %w(capture source preset scheme transcoder slot).inject({}) do |h, x|
-        h["#{x}s"] = all_to_hash(x.camelize.constantize)
-        h
-      end.merge({
-        events: Event.all.map { |event| event.to_hash.merge({slots: event.slots.map(&:id)}) }
-                })
-      file.write(JSON.pretty_generate(conf))
-    }
-
-    send_file 'tm-config.json', filename: 'tm-config.json', type: 'Application/octet-stream'
+    attachment 'tm-config.json'
+    JSON.pretty_generate(config_to_json)
   end
 
   post '/import' do
-    MonitorService.instance.shutdown
-
     upload = expect_params('file')[0]
     json = JSON.load upload[:tempfile]
     raise 'Incomplete configuration' unless \
-       %w(captures sources presets schemes transcoders slots events).all? { |x| json.key? x }
+         %w(captures sources presets schemes transcoders slots events).all? { |x| json.key? x }
 
-    %w(capture source preset scheme transcoder slot event).each do |e|
-      model = e.camelize.constantize
-      model.all.map &:delete
-      json["#{e}s"].each { |x| model.create_from_hash HashWithIndifferentAccess.new(x) }
+    config_backup = config_to_json
+    MonitorService.instance.shutdown
+    begin
+      config_from_json(json)
+      success
+    rescue => ex
+      log_exception ex
+      config_from_json(config_backup)
+      raise 'Error importing configuration. Check logs.'
+    ensure
+        MonitorService.instance.start
     end
-
-    MonitorService.instance.start
-    success
   end
 
   private
@@ -349,6 +343,22 @@ class TranscoderManager < Sinatra::Base
     status 400
     headers 'X-Status-Reason' => reason
     error.is_a?(String) ? {error: error}.to_json : error.to_json
+  end
+
+  def config_to_json
+    %w(capture source preset scheme transcoder slot)
+    .inject(ActiveSupport::OrderedHash.new) { |h, x|
+      h.store("#{x}s", all_to_hash(x.camelize.constantize)) and h
+    }
+    .store('events', Event.all.map { |event| event.to_hash.merge({slots: event.slots.map(&:id)}) })
+  end
+
+  def config_from_json(json)
+    %w(capture source preset scheme transcoder slot event).each do |e|
+      model = e.camelize.constantize
+      model.all.map &:delete
+      json["#{e}s"].each { |x| model.create_from_hash HashWithIndifferentAccess.new(x) }
+    end
   end
 
 end

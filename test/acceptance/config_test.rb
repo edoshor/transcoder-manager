@@ -372,4 +372,17 @@ class ConfigTest < Test::Unit::TestCase
     assert_successful last_response
   end
 
+  # --- Import Export ---
+
+  def test_export
+    txcoder = create(:transcoder)
+    get '/export'
+    resp = last_response
+    assert_equal 200, resp.status
+    assert_not_nil resp.header['Content-Disposition']
+    assert resp.header['Content-Type'].include?('application/json')
+    body = JSON.parse resp.body
+    assert_json_eq txcoder, body['transcoders'][0]
+  end
+
 end
