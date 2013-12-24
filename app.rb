@@ -81,6 +81,7 @@ class TranscoderManager < Sinatra::Base
   # Error handlers
 
   class ApiError < StandardError; end
+  class MissingModelError < StandardError; end
 
   not_found do
     'This is nowhere to be found. Intention !'
@@ -97,11 +98,19 @@ class TranscoderManager < Sinatra::Base
   end
 
   error ApiError do
-    handle_error 400, 'Api error'
+    handle_error 500, 'Api error'
   end
 
   error Transcoder::TranscoderError do
-    handle_error 400, 'Transcoder error'
+    handle_error 500, 'Transcoder error'
+  end
+
+  error ArgumentError do
+    handle_error 400, 'Argument error'
+  end
+
+  error MissingModelError do
+    halt 404
   end
 
   private
@@ -129,7 +138,7 @@ class TranscoderManager < Sinatra::Base
 
   def expect_params(*parameter_names)
     parameter_names.map do |p|
-      raise ApiError, "expecting #{p} but didn't get any" unless params[p]
+      raise ArgumentError, "expecting #{p} but didn't get any" unless params[p]
       params[p]
     end
   end

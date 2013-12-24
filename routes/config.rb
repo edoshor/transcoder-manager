@@ -29,7 +29,7 @@ class TranscoderManager < Sinatra::Base
   end
 
   put '/transcoders/:id' do
-    raise ApiError, 'Operation not supported'
+    halt 405, 'Operation not supported'
   end
 
   delete '/transcoders/:id' do
@@ -70,14 +70,14 @@ class TranscoderManager < Sinatra::Base
 
     transcoder = get_model(tid, Transcoder)
     slot = transcoder.slots[sid]
-    raise ApiError, "Unknown slot with id #{sid}" unless slot
+    raise MissingModelError, "Unknown slot with id #{sid}" unless slot
     slot.to_hash.to_json
   end
 
   delete '/transcoders/:id/slots/:id' do |tid, sid|
     transcoder = get_model(tid, Transcoder)
     slot = transcoder.slots[sid]
-    raise ApiError, "Unknown slot with id #{sid}" unless slot
+    raise MissingModelError, "Unknown slot with id #{sid}" unless slot
 
     if Event.slot_in_use? slot
       config_integrity_error 'Slot is in use. Can not delete.'
@@ -103,10 +103,7 @@ class TranscoderManager < Sinatra::Base
   end
 
   post '/captures' do
-    name, host = expect_params 'name', 'host'
-    atts = {name: name, host: host}
-    (1..4).map { |i| "input#{i}" }.each { |i| atts.store(i.to_sym, params[i]) if params[i] }
-    save_model Capture.new(atts)
+    save_model Capture.from_params(params)
   end
 
   get '/captures/:id' do
@@ -114,7 +111,9 @@ class TranscoderManager < Sinatra::Base
   end
 
   put '/captures/:id' do
-    raise ApiError, 'Operation not supported'
+    model = get_model(params[:id], Capture)
+    atts = Capture.params_to_attributes(params)
+    update_model model, atts
   end
 
   delete '/captures/:id' do
@@ -144,7 +143,7 @@ class TranscoderManager < Sinatra::Base
   end
 
   put '/sources/:id' do
-    raise ApiError, 'Operation not supported'
+    halt 405, 'Operation not supported'
   end
 
   delete '/sources/:id' do
@@ -164,7 +163,7 @@ class TranscoderManager < Sinatra::Base
 
   post '/presets' do
     name, tracks = expect_params 'name', 'tracks'
-    raise ApiError, 'Expecting tracks profiles' if tracks.nil? || tracks.empty?
+    raise ArgumentError, 'Expecting tracks profiles' if tracks.nil? || tracks.empty?
 
     preset = Preset.new(name: name)
     if preset.valid?
@@ -184,7 +183,7 @@ class TranscoderManager < Sinatra::Base
   end
 
   put '/presets/:id' do
-    raise ApiError, 'Operation not supported'
+    halt 405, 'Operation not supported'
   end
 
   delete '/presets/:id' do
@@ -219,7 +218,7 @@ class TranscoderManager < Sinatra::Base
   end
 
   put '/schemes/:id' do
-    raise ApiError, 'Operation not supported'
+    halt 405, 'Operation not supported'
   end
 
   delete '/schemes/:id' do
@@ -247,7 +246,7 @@ class TranscoderManager < Sinatra::Base
   end
 
   put '/events/:id' do
-    raise ApiError, 'Operation not supported'
+    halt 405, 'Operation not supported'
   end
 
   delete '/events/:id' do
@@ -288,7 +287,9 @@ class TranscoderManager < Sinatra::Base
     config_backup = config_to_json
     MonitorService.instance.shutdown
     begin
+      tx_ids = Transcoder.all.map(&:id)
       config_from_json(json)
+      tx_ids.each { |tx_id| MonitorService.instance.remove_history tx_id }
       success
     rescue => ex
       log_exception ex
@@ -302,7 +303,7 @@ class TranscoderManager < Sinatra::Base
   private
 
   def get_model(id, clazz)
-    clazz[id] or raise ApiError, "Unknown #{clazz.name} with id #{id}"
+    clazz[id] or raise MissingModelError, "Unknown #{clazz.name} with id #{id}"
   end
 
   def save_model(model)
@@ -332,7 +333,7 @@ class TranscoderManager < Sinatra::Base
   end
 
   def config_integrity_error(msg)
-    custom_error 'Configuration', 'Configuration constraint failed', msg
+    raise ApiError, msg
   end
 
   def custom_error(type, reason, error)

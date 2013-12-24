@@ -96,6 +96,17 @@ class Capture < Ohm::Model
     Capture.create(atts)
   end
 
+  def self.params_to_attributes(params)
+    atts = HashWithIndifferentAccess.new
+    %w(name host input1 input2 input3 input4).each{ |k| atts[k] = params[k] if params.key?(k) }
+    %w(name host).each { |k| raise ArgumentError.new("expecting #{k}") unless atts.key? k}
+    atts
+  end
+
+  def self.from_params(params)
+    Capture.new(Capture.params_to_attributes(params))
+  end
+
   private
 
   def self.create_unknown(host)

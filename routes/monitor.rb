@@ -13,9 +13,9 @@ class TranscoderManager < Sinatra::Base
 
   get '/monitor/:tx_id/:metric' do
     metric = params[:metric]
-    raise ApiError, "Unknown metric: #{metric}" unless %w(cpu temp state events).include? metric
+    halt 404 unless %w(cpu temp state events).include? metric
     period = params[:period] || 'hour'
-    raise ApiError, "Unknown period: #{period}" unless %w(all week day hour 10_minutes).include? period
+    halt 404 unless %w(all week day hour 10_minutes).include? period
 
     reverse = params[:reverse]
     if reverse

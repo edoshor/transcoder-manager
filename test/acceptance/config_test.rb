@@ -27,8 +27,7 @@ class ConfigTest < Test::Unit::TestCase
 
   def test_transcoder_get_slots
     get '/transcoders/1/slots'
-    body = assert_api_error last_response
-    assert_match(/Unknown Transcoder/, body)
+    assert_not_found last_response
 
     transcoder = create(:transcoder)
     get "/transcoders/#{transcoder.id}/slots"
@@ -51,13 +50,11 @@ class ConfigTest < Test::Unit::TestCase
 
   def test_get_slot
     get '/transcoders/1/slots/1'
-    body = assert_api_error last_response
-    assert_match(/Unknown Transcoder/, body)
+    assert_not_found last_response
 
     transcoder = create(:transcoder)
     get "/transcoders/#{transcoder.id}/slots/1"
-    body = assert_api_error last_response
-    assert_match(/Unknown slot/, body)
+    assert_not_found last_response
 
     scheme = create(:scheme)
     post "/transcoders/#{transcoder.id}/slots", slot_id: 10, scheme_id: scheme.id
@@ -74,13 +71,11 @@ class ConfigTest < Test::Unit::TestCase
 
   def test_delete_slot
     delete '/transcoders/1/slots/1'
-    body = assert_api_error last_response
-    assert_match(/Unknown Transcoder/, body)
+    assert_not_found last_response
 
     transcoder = create(:transcoder)
     delete "/transcoders/#{transcoder.id}/slots/1"
-    body = assert_api_error last_response
-    assert_match(/Unknown slot/, body)
+    assert_not_found last_response
 
     scheme = create(:scheme)
     post "/transcoders/#{transcoder.id}/slots", slot_id: 10, scheme_id: scheme.id
@@ -111,18 +106,26 @@ class ConfigTest < Test::Unit::TestCase
 
   def test_get_capture
     get '/captures/1'
-    body = assert_api_error last_response
-    assert_match(/Unknown Capture/, body)
+    assert_not_found last_response
 
     capture = create(:capture)
     get "/captures/#{capture.id}"
     assert_successful_eq capture, last_response
   end
 
+  def test_edit_capture
+    put '/captures/1'
+    assert_not_found last_response
+
+    atts = create(:capture).to_hash
+    atts[:name] = 'new name'
+    put "/captures/#{atts.delete(:id)}", atts
+    assert_successful_atts_eq atts, last_response
+  end
+
   def test_delete_capture
     delete '/captures/1'
-    body = assert_api_error last_response
-    assert_match(/Unknown Capture/, body)
+    assert_not_found last_response
 
     capture = create(:capture)
     delete "/captures/#{capture.id}"
@@ -131,7 +134,7 @@ class ConfigTest < Test::Unit::TestCase
 
     source = create(:source)
     delete "/captures/#{source.capture.id}"
-    assert_configuration_error last_response
+    assert_api_error last_response
   end
 
   # --- Sources ---
@@ -151,29 +154,24 @@ class ConfigTest < Test::Unit::TestCase
 
   def test_create_source
     capture = create(:capture)
-    atts = {name: 'source1', capture_id: capture.id, input: 1}
+    atts = attributes_for(:source).merge!({capture_id: capture.id})
     post '/sources', atts
-    source = assert_successful last_response
-    assert_attributes_eq atts, source
+    source = assert_successful_atts_eq atts, last_response
     assert_equal capture.name, source['capture_name']
   end
 
   def test_create_source_validations
     post '/sources', name: 'source3', capture_id: '1'
-    body = assert_api_error last_response
-    assert_match(/expecting input/, body)
+    assert_bad_request last_response, 'expecting input'
 
     post '/sources', name: 'source3', input: 1
-    body = assert_api_error last_response
-    assert_match(/expecting capture_id/, body)
+    assert_bad_request last_response, 'expecting capture_id'
 
     post '/sources', capture_id: '1', input: 4
-    body = assert_api_error last_response
-    assert_match(/expecting name/, body)
+    assert_bad_request last_response, 'expecting name'
 
     post '/sources', name: 'source3', capture_id: '1', input: 5
-    body = assert_api_error last_response
-    assert_match(/Unknown Capture/, body)
+    assert_not_found last_response
 
     capture = create(:capture)
     post '/sources', name: 'source3', capture_id: capture.id, input: 5
@@ -183,8 +181,7 @@ class ConfigTest < Test::Unit::TestCase
 
   def test_get_source
     get '/sources/1'
-    body = assert_api_error last_response
-    assert_match(/Unknown Source/, body)
+    assert_not_found last_response
 
     source = create(:source)
     get "/sources/#{source.id}"
@@ -193,8 +190,7 @@ class ConfigTest < Test::Unit::TestCase
 
   def test_delete_source
     delete '/sources/1'
-    body = assert_api_error last_response
-    assert_match(/Unknown Source/, body)
+    assert_not_found last_response
 
     source = create(:source)
     delete "/sources/#{source.id}"
@@ -210,16 +206,7 @@ class ConfigTest < Test::Unit::TestCase
     atts[:tracks].map! { |t| t.to_hash }
 
     post '/presets', atts
-    preset = assert_successful last_response
-    assert_not_nil preset
-    assert_equal '1', preset['id']
-    assert_equal atts[:tracks].length, preset['tracks'].length
-    assert_equal atts[:name], preset['name']
-    atts[:tracks].each_index do |i|
-      assert_equal atts[:tracks][i][:gain], preset['tracks'][i]['gain'].to_i
-      assert_equal atts[:tracks][i][:num_channels], preset['tracks'][i]['num_channels'].to_i
-      assert_equal atts[:tracks][i][:profile_number], preset['tracks'][i]['profile_number'].to_i
-    end
+    assert_successful_atts_eq atts, last_response
   end
 
   def test_create_preset_error
@@ -250,8 +237,10 @@ class ConfigTest < Test::Unit::TestCase
             preset_id: preset.id,
             audio_mappings: (0..preset.tracks.size).to_a}
     post '/schemes', atts
-    scheme = assert_successful last_response
-    assert_not_nil scheme
+    atts[:src1_id] = atts.delete :source1_id
+    scheme = assert_successful_atts_eq atts, last_response
+    assert_equal source.name, scheme['src1_name']
+    assert_equal preset.name, scheme['preset_name']
   end
 
   def test_delete_scheme_source
@@ -264,7 +253,7 @@ class ConfigTest < Test::Unit::TestCase
     scheme = assert_successful last_response
 
     delete "/sources/#{scheme['src1_id']}"
-    assert_configuration_error last_response
+    assert_api_error last_response
   end
 
   def test_delete_scheme_preset
@@ -277,7 +266,7 @@ class ConfigTest < Test::Unit::TestCase
     scheme = assert_successful last_response
 
     delete "/presets/#{scheme['preset_id']}"
-    assert_configuration_error last_response
+    assert_api_error last_response
   end
 
   # --- Events ---
@@ -285,8 +274,7 @@ class ConfigTest < Test::Unit::TestCase
   def test_create_event
     atts = {name: 'event1'}
     post '/events', atts
-    event = assert_successful last_response
-    assert_attributes_eq atts, event
+    assert_successful_atts_eq atts, last_response
   end
 
   def test_event_add_slot
@@ -348,12 +336,12 @@ class ConfigTest < Test::Unit::TestCase
     post "/events/#{event['id']}/slots", slot_id: slot.id
     assert_successful last_response
     delete "/transcoders/#{t1.id}"
-    assert_configuration_error last_response
+    assert_api_error last_response
     delete "/transcoders/#{t2.id}"
     assert_successful last_response
 
     delete "/transcoders/#{t1.id}/slots/#{slot.id}"
-    assert_configuration_error last_response
+    assert_api_error last_response
   end
 
   def test_event_scheme_deleted
@@ -368,7 +356,7 @@ class ConfigTest < Test::Unit::TestCase
     post "/events/#{event['id']}/slots", slot_id: slot.id
     assert_successful last_response
     delete "/schemes/#{scheme.id}"
-    assert_configuration_error last_response
+    assert_api_error last_response
     delete "/schemes/#{scheme2.id}"
     assert_successful last_response
   end
@@ -419,16 +407,11 @@ class ConfigTest < Test::Unit::TestCase
 
     get '/export'
     json = last_response.body
-    file = Tempfile.new(%w(tm-config json))
+    file = Tempfile.new(%w(tm-config .json))
     begin
       file.write json
-    ensure
       file.close
-    end
-
-    create(:scheme) #create another scheme to change the configuration at this step
-
-    begin
+      create(:scheme) #create another scheme to change the configuration at this step
       post '/import', 'file' => Rack::Test::UploadedFile.new(file.path, 'application/json')
       assert_successful last_response
     ensure

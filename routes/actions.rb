@@ -36,7 +36,7 @@ class TranscoderManager < Sinatra::Base
   get '/transcoders/:id/slots/:id/start' do |tid, sid|
     transcoder = get_model(tid, Transcoder)
     slot = transcoder.slots[sid]
-    raise ApiError, "Unknown slot with id #{sid}" unless slot
+    raise MissingModelError, "Unknown slot with id #{sid}" unless slot
     raise ApiError, 'Slot has no scheme, delete it and start again.' unless slot.scheme
     transcoder.start_slot slot
     success
@@ -45,7 +45,7 @@ class TranscoderManager < Sinatra::Base
   get '/transcoders/:id/slots/:id/stop' do |tid, sid|
     transcoder = get_model(tid, Transcoder)
     slot = transcoder.slots[sid]
-    raise ApiError, "Unknown slot with id #{sid}" unless slot
+    raise MissingModelError, "Unknown slot with id #{sid}" unless slot
     transcoder.stop_slot slot
     success
   end
@@ -53,7 +53,7 @@ class TranscoderManager < Sinatra::Base
   get '/transcoders/:id/slots/:id/status' do |tid, sid|
     transcoder = get_model(tid, Transcoder)
     slot = transcoder.slots[sid]
-    raise ApiError, "Unknown slot with id #{sid}" unless slot
+    raise MissingModelError, "Unknown slot with id #{sid}" unless slot
     resp = transcoder.get_slot_status(slot)
     prepare_slot_status(resp).to_json
   end

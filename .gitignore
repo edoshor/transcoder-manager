@@ -20,3 +20,4 @@ doc/
 .idea/
 Gemfile.lock
 logs/
+tm-config.json
