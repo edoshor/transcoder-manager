@@ -111,9 +111,7 @@ class TranscoderManager < Sinatra::Base
   end
 
   put '/captures/:id' do
-    model = get_model(params[:id], Capture)
-    atts = Capture.params_to_attributes(params)
-    update_model model, atts
+    update_model get_model(params[:id], Capture), Capture.params_to_attributes(params)
   end
 
   delete '/captures/:id' do
@@ -132,10 +130,7 @@ class TranscoderManager < Sinatra::Base
   end
 
   post '/sources' do
-    name, capture_id, input = expect_params 'name', 'capture_id', 'input'
-    save_model Source.new(name: name,
-                          capture: get_model(capture_id, Capture),
-                          input: input)
+    save_model Source.from_params(params)
   end
 
   get '/sources/:id' do
@@ -143,7 +138,7 @@ class TranscoderManager < Sinatra::Base
   end
 
   put '/sources/:id' do
-    halt 405, 'Operation not supported'
+    update_model get_model(params[:id], Source), Source.params_to_attributes(params)
   end
 
   delete '/sources/:id' do
@@ -163,7 +158,7 @@ class TranscoderManager < Sinatra::Base
 
   post '/presets' do
     name, tracks = expect_params 'name', 'tracks'
-    raise ArgumentError, 'Expecting tracks profiles' if tracks.nil? || tracks.empty?
+    raise ArgumentError.new('Expecting tracks profiles') if tracks.nil? || tracks.empty?
 
     preset = Preset.new(name: name)
     if preset.valid?
@@ -273,6 +268,8 @@ class TranscoderManager < Sinatra::Base
     success
   end
 
+  # --- Import / Export ---
+
   get '/export' do
     attachment 'tm-config.json'
     JSON.pretty_generate(config_to_json)
@@ -299,6 +296,8 @@ class TranscoderManager < Sinatra::Base
         MonitorService.instance.start
     end
   end
+
+  # --- Private methods ---
 
   private
 

@@ -50,4 +50,21 @@ class Source < Ohm::Model
     Source.create(atts)
   end
 
+  def self.params_to_attributes(params)
+    atts = HashWithIndifferentAccess.new
+    %w(name capture_id input).each do |k|
+      if params.key?(k)
+        atts[k] = params[k]
+      else
+        raise ArgumentError.new("expecting #{k}")
+      end
+    end
+    atts[:capture] = Capture[atts.delete(:capture_id)]
+    atts
+  end
+
+  def self.from_params(params)
+    Source.new(Source.params_to_attributes(params))
+  end
+
 end

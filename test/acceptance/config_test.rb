@@ -123,6 +123,14 @@ class ConfigTest < Test::Unit::TestCase
     assert_successful_atts_eq atts, last_response
   end
 
+  def test_edit_capture_error
+    atts = create(:capture).to_hash
+    atts[:host] = 'Illegal ip'
+    put "/captures/#{atts.delete(:id)}", atts
+    errors = assert_validation_error last_response
+    assert_not_nil errors['host']
+  end
+
   def test_delete_capture
     delete '/captures/1'
     assert_not_found last_response
@@ -156,8 +164,8 @@ class ConfigTest < Test::Unit::TestCase
     capture = create(:capture)
     atts = attributes_for(:source).merge!({capture_id: capture.id})
     post '/sources', atts
-    source = assert_successful_atts_eq atts, last_response
-    assert_equal capture.name, source['capture_name']
+    atts['capture_name'] = capture.name
+    assert_successful_atts_eq atts, last_response
   end
 
   def test_create_source_validations
@@ -171,7 +179,7 @@ class ConfigTest < Test::Unit::TestCase
     assert_bad_request last_response, 'expecting name'
 
     post '/sources', name: 'source3', capture_id: '1', input: 5
-    assert_not_found last_response
+    assert_bad_request last_response
 
     capture = create(:capture)
     post '/sources', name: 'source3', capture_id: capture.id, input: 5
@@ -186,6 +194,35 @@ class ConfigTest < Test::Unit::TestCase
     source = create(:source)
     get "/sources/#{source.id}"
     assert_successful_eq source, last_response
+  end
+
+  def test_edit_source
+    put '/sources/1'
+    assert_not_found last_response
+
+    atts = create(:source).to_hash
+    path = "/sources/#{atts.delete(:id)}"
+    atts[:name] = 'new name'
+    put path, atts
+    assert_successful_atts_eq atts, last_response
+
+    new_capture = create(:capture)
+    atts[:capture_id] = new_capture.id
+    atts[:capture_name] = new_capture.name
+    put path, atts
+    assert_successful_atts_eq atts, last_response
+  end
+
+  def test_edit_source_error
+    source = create(:source)
+    atts = source.to_hash.merge!({capture_id: 1111})
+    put "/sources/#{source.id}", atts
+    assert_bad_request last_response
+
+    atts = source.to_hash.merge!({input: 5})
+    put "/sources/#{source.id}", atts
+    errors = assert_validation_error last_response
+    assert_not_nil errors['input']
   end
 
   def test_delete_source
