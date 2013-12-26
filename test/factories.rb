@@ -54,6 +54,12 @@ FactoryGirl.define do
     initialize_with { new(attributes) }
   end
 
+  factory :slot do
+    slot_id {rand(0..255) }
+    scheme
+    transcoder
+  end
+
   factory :scheme, class: Scheme do
     sequence(:name) { |n| "scheme#{n}" }
     preset

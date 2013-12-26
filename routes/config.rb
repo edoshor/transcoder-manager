@@ -33,14 +33,9 @@ class TranscoderManager < Sinatra::Base
   end
 
   delete '/transcoders/:id' do
-    transcoder = get_model(params[:id], Transcoder)
-    if transcoder.slots.any? { |slot| Event.slot_in_use? slot }
-      config_integrity_error 'Transcoder is in use. Can not delete.'
-    else
-      MonitorService.instance.remove_txcoder transcoder.id
-      transcoder.slots.each { |slot| slot.delete }
-      transcoder.delete
-      success
+    delete_model get_model(params[:id], Transcoder) do |txcoder|
+      MonitorService.instance.remove_txcoder txcoder.id
+      txcoder.slots.each { |slot| slot.delete }
     end
   end
 
@@ -79,13 +74,7 @@ class TranscoderManager < Sinatra::Base
     slot = transcoder.slots[sid]
     raise ApiError, "Unknown slot with id #{sid}" unless slot
 
-    if Event.slot_in_use? slot
-      config_integrity_error 'Slot is in use. Can not delete.'
-    else
-      transcoder.delete_slot slot
-      slot.delete
-      success
-    end
+    delete_model(slot) { |s| transcoder.delete_slot s }
   end
 
   get '/transcoders/:id/net-config' do
@@ -118,12 +107,7 @@ class TranscoderManager < Sinatra::Base
   end
 
   delete '/captures/:id' do
-    capture = get_model(params[:id], Capture)
-    if Source.find(capture_id: capture.id).empty?
-      capture.delete and success
-    else
-      config_integrity_error "Capture #{capture.name} is in use. Can not delete."
-    end
+    delete_model get_model(params[:id], Capture)
   end
 
   # --- Sources ---
@@ -148,12 +132,7 @@ class TranscoderManager < Sinatra::Base
   end
 
   delete '/sources/:id' do
-    source = get_model(params[:id], Source)
-    if Scheme.source_in_use? source
-      config_integrity_error "Source #{source.name} is in use. Can not delete."
-    else
-      source.delete and success
-    end
+    delete_model get_model(params[:id], Source)
   end
 
   # --- Presets ---
@@ -188,12 +167,7 @@ class TranscoderManager < Sinatra::Base
   end
 
   delete '/presets/:id' do
-    preset = get_model(params[:id], Preset)
-    if Scheme.preset_in_use? preset
-      config_integrity_error "Preset #{preset.name} is in use. Can not delete."
-    else
-      preset.delete and success
-    end
+    delete_model get_model(params[:id], Preset)
   end
 
   # --- Schemes ---
@@ -223,12 +197,7 @@ class TranscoderManager < Sinatra::Base
   end
 
   delete '/schemes/:id' do
-    scheme = get_model(params[:id], Scheme)
-    if Slot.find_by_scheme(scheme).any? { |slot| Event.slot_in_use? slot }
-      config_integrity_error 'Scheme is in use. Can not delete.'
-    else
-      scheme.delete and success
-    end
+    delete_model get_model(params[:id], Scheme)
   end
 
   # --- Events ---
@@ -251,7 +220,7 @@ class TranscoderManager < Sinatra::Base
   end
 
   delete '/events/:id' do
-    get_model(params[:id], Event).delete and success
+    delete_model get_model(params[:id], Event)
   end
 
   get '/events/:id/slots' do
@@ -317,6 +286,15 @@ class TranscoderManager < Sinatra::Base
   def update_model(model, atts)
     return model.to_hash.to_json if atts.empty?
     model.update(atts) ? model.to_hash.to_json : validation_error(model.errors)
+  end
+
+  def delete_model(model)
+    if ConfigManager.can_delete? model
+      yield(model) if block_given?
+      model.delete and success
+    else
+      config_integrity_error "#{model.class} is in use. Can not delete."
+    end
   end
 
   def all_to_hash(clazz)
