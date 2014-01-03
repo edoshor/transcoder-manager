@@ -21,16 +21,10 @@ class TranscoderManager < Sinatra::Base
     redirect "http://#{t.host}:#{t.status_port}"
   end
 
-  get '/transcoders/:id/load-status' do
-    t = get_model(params[:id], Transcoder)
-    t.load_status.to_json
-  end
-
   # --- Slots ---
 
   get '/transcoders/:id/slots/status' do
-    transcoder = get_model(params[:id], Transcoder)
-    slots_status(transcoder.slots).to_json
+    slots_status(get_model(params[:id], Transcoder).slots).to_json
   end
 
   get '/transcoders/:id/slots/:id/start' do |tid, sid|
