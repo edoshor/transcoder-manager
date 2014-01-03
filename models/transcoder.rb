@@ -1,5 +1,3 @@
-require 'ohm'
-require 'ohm/datatypes'
 require 'resolv'
 require 'log4r'
 require_relative '../lib/transcoder_api'
@@ -7,8 +5,7 @@ require_relative '../lib/stub_transcoder_api'
 require_relative '../app_config'
 require_relative 'monitor/monitor_service'
 
-class Transcoder < Ohm::Model
-  include Ohm::DataTypes
+class Transcoder < BaseModel
 
   class TranscoderError < StandardError; end
 
@@ -16,10 +13,11 @@ class Transcoder < Ohm::Model
   attribute :host
   attribute :port, Type::Integer
   attribute :status_port, Type::Integer
-
   collection :slots, :Slot
-
   unique :name
+
+  required_params %w(name host)
+  optional_params %w(port status_port)
 
   # Determine which api class to use based on environment
   def self.api_class
@@ -200,10 +198,6 @@ class Transcoder < Ohm::Model
     logger.info 'synchronization finished'
     log_event :sync
     errors
-  end
-
-  def self.create_from_hash(atts)
-    Transcoder.create(atts)
   end
 
   private

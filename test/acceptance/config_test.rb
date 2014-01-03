@@ -13,6 +13,13 @@ class ConfigTest < Test::Unit::TestCase
     assert_attributes_eq atts, txcoder
   end
 
+  def test_edit_transcoder
+    txcoder = create(:transcoder)
+    atts = attributes_for(:transcoder)
+    put "/transcoders/#{txcoder.id}", atts
+    assert_successful_atts_eq atts, last_response, false
+  end
+
   def test_transcoder_create_slot
     transcoder = create(:transcoder)
     scheme = create(:scheme)
@@ -23,6 +30,12 @@ class ConfigTest < Test::Unit::TestCase
     assert_equal transcoder.id, slot['transcoder_id']
     assert_equal transcoder.name, slot['transcoder_name']
     assert_equal scheme.name, slot['scheme_name']
+  end
+
+  def test_edit_slot
+    slot = create(:slot)
+    put "/transcoders/#{slot.transcoder.id}/slots/#{slot.slot_id}", slot.to_hash
+    assert_not_implemented last_response
   end
 
   def test_transcoder_get_slots
@@ -264,20 +277,52 @@ class ConfigTest < Test::Unit::TestCase
     assert_validation_error last_response
   end
 
+  def test_edit_preset
+    put '/presets/1'
+    assert_not_found last_response
+
+    preset = create(:preset)
+    atts = preset.to_hash
+    path = "/presets/#{atts.delete(:id)}"
+    atts[:name] = 'new name'
+    put path, atts
+    assert_successful last_response do |content|
+      assert_equal content['name'], 'new name'
+    end
+  end
+
   # --- Schemes ---
 
   def test_create_scheme
     preset = create(:preset)
     source = create(:source)
+    source2 = create(:source)
     atts = {name: 'scheme1',
             source1_id: source.id,
+            source2_id: source2.id,
             preset_id: preset.id,
             audio_mappings: (0..preset.tracks.size).to_a}
     post '/schemes', atts
     atts[:src1_id] = atts.delete :source1_id
+    atts[:src2_id] = atts.delete :source2_id
     scheme = assert_successful_atts_eq atts, last_response
     assert_equal source.name, scheme['src1_name']
+    assert_equal source2.name, scheme['src2_name']
     assert_equal preset.name, scheme['preset_name']
+  end
+
+  def test_edit_scheme
+    scheme = create(:scheme)
+    atts = scheme.to_hash
+    atts[:source1_id] = atts.delete :src1_id
+    atts[:source2_id] = atts.delete :src2_id
+    preset = create(:preset)
+    atts.update(name: 'new name', preset_id: preset.id)
+    put "/schemes/#{scheme.id}", atts
+    atts[:src1_id] = atts.delete :source1_id
+    atts[:src2_id] = atts.delete :source2_id
+    atts[:preset_name] = preset.name
+    assert_successful_atts_eq atts, last_response, false
   end
 
   def test_delete_scheme_source
@@ -312,6 +357,13 @@ class ConfigTest < Test::Unit::TestCase
     atts = {name: 'event1'}
     post '/events', atts
     assert_successful_atts_eq atts, last_response
+  end
+
+  def test_edit_event
+    event = create(:event)
+    atts = event.to_hash.update(name: 'new name')
+    put "/events/#{event.id}", atts
+    assert_successful_atts_eq atts, last_response, false
   end
 
   def test_event_add_slot

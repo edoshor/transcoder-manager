@@ -61,13 +61,11 @@ class TranscoderManager < Sinatra::Base
   # --- Broadcast events ---
 
   get '/events/:id/start' do
-    event = get_model(params[:id], Event)
-    event.start and success
+    get_model(params[:id], Event).start and success
   end
 
   get '/events/:id/stop' do
-    event = get_model(params[:id], Event)
-    event.stop and success
+    get_model(params[:id], Event).stop and success
   end
 
   get '/events/:id/status' do

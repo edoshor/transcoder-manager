@@ -1,8 +1,4 @@
-require 'ohm'
-require 'ohm/datatypes'
-
-class Event < Ohm::Model
-  include Ohm::DataTypes
+class Event < BaseModel
 
   attribute :name
   attribute :running, Type::Boolean
@@ -10,6 +6,8 @@ class Event < Ohm::Model
   list :slots, :Slot
   unique :name
   index :running
+
+  required_params %w(name)
 
   def validate
     assert_present :name
@@ -58,12 +56,12 @@ class Event < Ohm::Model
   end
 
   def self.slot_in_use? (slot)
-    Event.all.any? { |event| event.slots.include? slot }
+    all.any? { |event| event.slots.include? slot }
   end
 
   def self.create_from_hash(atts)
     slot_ids = atts.delete(:slots)
-    event = Event.create(atts)
+    event = create(atts)
     slot_ids.each { |x| event.slots.push Slot[x] } unless slot_ids.blank?
     event
   end

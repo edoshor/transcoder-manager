@@ -1,3 +1,4 @@
+require_relative 'base_model'
 require_relative 'transcoder'
 require_relative 'capture'
 require_relative 'source'

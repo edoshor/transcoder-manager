@@ -21,7 +21,9 @@ module AcceptanceHelper
     puts resp.to_s unless resp.status == 200
     assert_equal 200, resp.status
     assert resp.header['Content-Type'].include?('application/json')
-    JSON.parse resp.body
+    content = JSON.parse resp.body
+    yield content if block_given?
+    content
   end
 
   def assert_successful_text(resp, text)
@@ -58,14 +60,16 @@ module AcceptanceHelper
     assert_json_eq model, assert_successful(resp)
   end
 
-  def assert_successful_atts_eq(atts, resp)
-    body = assert_successful(resp)
-    assert_attributes_eq atts, body
-    body
+  def assert_successful_atts_eq(atts, resp, check_id=true)
+    assert_successful(resp) { |content| assert_attributes_eq atts, content, check_id }
   end
 
   def assert_not_found(resp)
     assert_equal 404, resp.status
+  end
+
+  def assert_not_implemented(resp)
+    assert_equal 405, resp.status
   end
 
   def assert_bad_request(resp, msg = nil)

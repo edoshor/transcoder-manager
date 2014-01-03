@@ -1,8 +1,4 @@
-require 'ohm'
-require 'ohm/datatypes'
-
-class Track < Ohm::Model
-  include Ohm::DataTypes
+class Track < BaseModel
 
   # should be 0 for video continuous integer for audio
   attribute :gain, Type::Integer
@@ -13,6 +9,7 @@ class Track < Ohm::Model
   # 1-100 for video, 101-254 for audio
   attribute :profile_number, Type::Integer
 
+  required_params %w(gain num_channels profile_number)
 
   def validate
     assert_numeric :gain
@@ -53,11 +50,11 @@ class Track < Ohm::Model
   end
 
   def self.from_a(track)
-    Track.new profile_number: track[0], num_channels: track[1], gain: track[2]
+    new profile_number: track[0], num_channels: track[1], gain: track[2]
   end
 
   def self.create_from_hash(atts)
-    Track.create(atts)
+    create(atts)
   end
 
 end

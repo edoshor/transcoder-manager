@@ -1,15 +1,12 @@
-require 'ohm'
-require 'ohm/datatypes'
-
-class Source < Ohm::Model
-  include Ohm::DataTypes
+class Source < BaseModel
 
   attribute :name
   reference :capture, :Capture
   attribute :input, Type::Integer
-
   unique :name
   index :input
+
+  required_params %w(name capture_id input)
 
   def validate
     assert_present :name
@@ -47,24 +44,13 @@ class Source < Ohm::Model
   def self.create_from_hash(atts)
     atts.delete(:capture_name)
     atts[:capture] = Capture[atts.delete(:capture_id)]
-    Source.create(atts)
+    create(atts)
   end
 
   def self.params_to_attributes(params)
-    atts = HashWithIndifferentAccess.new
-    %w(name capture_id input).each do |k|
-      if params.key?(k)
-        atts[k] = params[k]
-      else
-        raise ArgumentError.new("expecting #{k}")
-      end
+    super(params) do |atts|
+      atts[:capture] = Capture[atts.delete(:capture_id)]
     end
-    atts[:capture] = Capture[atts.delete(:capture_id)]
-    atts
-  end
-
-  def self.from_params(params)
-    Source.new(Source.params_to_attributes(params))
   end
 
 end

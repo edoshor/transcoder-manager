@@ -1,8 +1,4 @@
-require 'ohm'
-require 'ohm/datatypes'
-
-class Scheme < Ohm::Model
-  include Ohm::DataTypes
+class Scheme < BaseModel
 
   attribute :name
   attribute :audio_mappings, Type::Array
@@ -11,6 +7,8 @@ class Scheme < Ohm::Model
   reference :src2, :Source
   unique :name
 
+  required_params %w(name preset_id source1_id audio_mappings)
+  optional_params %w(source2_id)
 
   def validate
     assert_present :name
@@ -93,6 +91,15 @@ class Scheme < Ohm::Model
     atts[:src1] = Source[atts.delete(:src1_id)]
     atts[:src2] = Source[atts.delete(:src2_id)]
     atts[:preset] = Preset[atts.delete(:preset_id)]
-    Scheme.create(atts)
+    create(atts)
   end
+
+  def self.params_to_attributes(params)
+    super(params) do |atts|
+      atts[:src1] = Source[atts.delete(:source1_id)]
+      atts[:src2] = Source[atts.delete(:source2_id)] if atts.key?(:source2_id)
+      atts[:preset] = Preset[atts.delete(:preset_id)]
+    end
+  end
+
 end

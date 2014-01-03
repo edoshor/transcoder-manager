@@ -1,9 +1,10 @@
-require 'ohm'
+class Preset < BaseModel
 
-class Preset < Ohm::Model
   attribute :name
   list :tracks, :Track
   unique :name
+
+  required_params %w(name tracks)
 
   def validate
     assert_present :name
@@ -19,9 +20,9 @@ class Preset < Ohm::Model
 
   def set_tracks(tracks_details)
     new_tracks = tracks_details.map { |t| Track.new(t) }
-    raise 'not enough tracks' unless new_tracks.length > 1
-    raise 'invalid tracks' unless new_tracks.all? { |t| t.valid?  }
-    raise 'invalid tracks sequence' unless new_tracks[0].is_video? && new_tracks[1].is_audio?
+    raise ArgumentError.new('not enough tracks') unless new_tracks.length > 1
+    raise ArgumentError.new('invalid tracks') unless new_tracks.all? { |t| t.valid?  }
+    raise ArgumentError.new('invalid tracks sequence') unless new_tracks[0].is_video? && new_tracks[1].is_audio?
 
     save
     new_tracks.each { |t| t.save and tracks.push t }

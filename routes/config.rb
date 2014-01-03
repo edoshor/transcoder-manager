@@ -10,17 +10,9 @@ class TranscoderManager < Sinatra::Base
   end
 
   post '/transcoders' do
-    name, host = expect_params 'name', 'host'
-    transcoder = Transcoder.new(name: name, host: host, port: params['port'], status_port: params['status_port'])
-
-    transcoder.is_alive? or raise ApiError, "Transcoder at #{transcoder.host}:#{transcoder.port} is not responding"
-
-    if transcoder.valid?
-      transcoder.save
-      MonitorService.instance.add_txcoder transcoder.id
-      transcoder.to_hash.to_json
-    else
-      validation_error transcoder.errors
+    txcoder = Transcoder.from_params(params)
+    save_model txcoder do |model|
+      MonitorService.instance.add_txcoder model.id
     end
   end
 
@@ -29,7 +21,7 @@ class TranscoderManager < Sinatra::Base
   end
 
   put '/transcoders/:id' do
-    halt 405, 'Operation not supported'
+    update_model get_model(params[:id], Transcoder), Transcoder.params_to_attributes(params)
   end
 
   delete '/transcoders/:id' do
@@ -45,36 +37,33 @@ class TranscoderManager < Sinatra::Base
   end
 
   post '/transcoders/:id/slots' do
-    slot_id, scheme_id = expect_params 'slot_id', 'scheme_id'
     transcoder = get_model(params[:id], Transcoder)
-    scheme = get_model(scheme_id, Scheme)
-
-    slot = Slot.new(slot_id: slot_id, transcoder: transcoder, scheme: scheme)
-    if slot.valid?
-      raise ApiError, 'Slot exist. Try another slot_id.' if transcoder.slot_taken?(slot.slot_id)
-      transcoder.create_slot slot
-    else
-      validation_error slot.errors
-    end
-
-    save_model slot
+    params['transcoder_id'] = transcoder.id
+    slot = Slot.from_params(params)
+    raise ArgumentError.new('slot id taken') if slot.valid? && transcoder.slot_taken?(slot.slot_id)
+    save_model(slot) { |model| transcoder.create_slot model }
   end
 
   get '/transcoders/:id/slots/:id' do |tid, sid|
     pass unless sid =~ /\d+/ # pass non numeric ids
-
-    transcoder = get_model(tid, Transcoder)
-    slot = transcoder.slots[sid]
-    raise MissingModelError, "Unknown slot with id #{sid}" unless slot
+    txcoder, slot = get_slot(tid, sid)
     slot.to_hash.to_json
   end
 
-  delete '/transcoders/:id/slots/:id' do |tid, sid|
-    transcoder = get_model(tid, Transcoder)
-    slot = transcoder.slots[sid]
-    raise MissingModelError, "Unknown slot with id #{sid}" unless slot
+  put '/transcoders/:id/slots/:id' do |tid, sid|
+    halt 405, 'can not update existing slot'
+  end
 
-    delete_model(slot) { |s| transcoder.delete_slot s }
+  delete '/transcoders/:id/slots/:id' do |tid, sid|
+    txcoder, slot = get_slot(tid, sid)
+    delete_model(slot) { |s| txcoder.delete_slot s }
+  end
+
+  def get_slot(tid, sid)
+    txcoder = get_model(tid, Transcoder)
+    slot = txcoder.slots[sid]
+    raise MissingModelError, "Unknown slot with id #{sid}" unless slot
+    [txcoder, slot]
   end
 
   get '/transcoders/:id/net-config' do
@@ -82,7 +71,7 @@ class TranscoderManager < Sinatra::Base
   end
 
   put '/transcoders/:id/net-config' do
-    raise 'not implemented'
+    halt 405, 'Operation not supported'
   end
 
   # --- Captures ---
@@ -136,19 +125,15 @@ class TranscoderManager < Sinatra::Base
   end
 
   post '/presets' do
-    name, tracks = expect_params 'name', 'tracks'
-    raise ArgumentError.new('Expecting tracks profiles') if tracks.nil? || tracks.empty?
-
-    preset = Preset.new(name: name)
-    if preset.valid?
+    atts = Preset.params_to_attributes(params)
+    tracks = atts.delete(:tracks)
+    save_model Preset.new(atts) do |model|
       begin
-        preset.set_tracks tracks
-        preset.to_hash.to_json
-      rescue Exception => e
-        validation_error e.message
+        model.set_tracks tracks
+      rescue ArgumentError => e
+        model.delete
+        validation_error(error: e.message)
       end
-    else
-      validation_error preset.errors
     end
   end
 
@@ -157,7 +142,10 @@ class TranscoderManager < Sinatra::Base
   end
 
   put '/presets/:id' do
-    halt 405, 'Operation not supported'
+    preset = get_model(params[:id], Preset)
+    atts = Preset.params_to_attributes(params)
+    atts.delete(:tracks)
+    update_model preset, atts
   end
 
   delete '/presets/:id' do
@@ -171,15 +159,7 @@ class TranscoderManager < Sinatra::Base
   end
 
   post '/schemes' do
-    name, preset_id, source1_id, audio_mappings =
-        expect_params 'name', 'preset_id', 'source1_id', 'audio_mappings'
-
-    save_model Scheme.new(
-                   name: name,
-                   preset: get_model(preset_id, Preset),
-                   src1: get_model(source1_id, Source),
-                   src2: params['source2_id'].nil? ? nil : get_model(params['source2_id'], Source),
-                   audio_mappings: audio_mappings)
+    save_model Scheme.from_params(params)
   end
 
   get '/schemes/:id' do
@@ -187,7 +167,7 @@ class TranscoderManager < Sinatra::Base
   end
 
   put '/schemes/:id' do
-    halt 405, 'Operation not supported'
+    update_model get_model(params[:id], Scheme), Scheme.params_to_attributes(params)
   end
 
   delete '/schemes/:id' do
@@ -201,8 +181,7 @@ class TranscoderManager < Sinatra::Base
   end
 
   post '/events' do
-    name = expect_params('name')[0]
-    save_model Event.new(name: name)
+    save_model Event.from_params(params)
   end
 
   get '/events/:id' do
@@ -210,7 +189,7 @@ class TranscoderManager < Sinatra::Base
   end
 
   put '/events/:id' do
-    halt 405, 'Operation not supported'
+    update_model get_model(params[:id], Event), Event.params_to_attributes(params)
   end
 
   delete '/events/:id' do
@@ -277,6 +256,7 @@ class TranscoderManager < Sinatra::Base
   def save_model(model)
     if model.valid?
       model.save
+      yield model if block_given?
       model.to_hash.to_json
     else
       validation_error model.errors
@@ -284,8 +264,8 @@ class TranscoderManager < Sinatra::Base
   end
 
   def update_model(model, atts)
-    return model.to_hash.to_json if atts.empty?
-    model.update(atts) ? model.to_hash.to_json : validation_error(model.errors)
+    model.update_attributes(atts)
+    block_given? ? save_model(model, &Proc.new) : save_model(model)
   end
 
   def delete_model(model)
@@ -293,7 +273,7 @@ class TranscoderManager < Sinatra::Base
       yield(model) if block_given?
       model.delete and success
     else
-      config_integrity_error "#{model.class} is in use. Can not delete."
+      raise ApiError, "#{model.class} is in use. Can not delete."
     end
   end
 
@@ -306,21 +286,10 @@ class TranscoderManager < Sinatra::Base
   end
 
   def validation_error(errors)
-    custom_error 'Validation', 'Validation failed', errors
-  end
-
-  def config_integrity_error(msg)
-    raise ApiError, msg
-  end
-
-  def custom_error(type, reason, error)
     request.body.rewind # in case someone already read it
-    logger.info "#{type} error: #{error}"
+    logger.info "#Validation error: #{errors}"
     logger.debug "request.body= #{request.body.read}"
-
-    status 400
-    headers 'X-Status-Reason' => reason
-    error.is_a?(String) ? {error: error}.to_json : error.to_json
+    halt 400, {'X-Status-Reason' => 'Validation failed'}, errors.to_json
   end
 
   def config_to_json

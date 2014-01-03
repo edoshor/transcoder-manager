@@ -1,9 +1,6 @@
-require 'ohm'
-require 'ohm/datatypes'
 require 'resolv'
 
-class Capture < Ohm::Model
-  include Ohm::DataTypes
+class Capture < BaseModel
 
   attribute :name
   attribute :host
@@ -11,9 +8,11 @@ class Capture < Ohm::Model
   attribute :input2, Type::Integer
   attribute :input3, Type::Integer
   attribute :input4, Type::Integer
-
   unique :name
   index :host
+
+  required_params %w(name host)
+  optional_params %w(input1 input2 input3 input4)
 
   def validate
     assert_present :name
@@ -92,25 +91,10 @@ class Capture < Ohm::Model
     capture.add_port(port) and return capture
   end
 
-  def self.create_from_hash(atts)
-    Capture.create(atts)
-  end
-
-  def self.params_to_attributes(params)
-    atts = HashWithIndifferentAccess.new
-    %w(name host input1 input2 input3 input4).each{ |k| atts[k] = params[k] if params.key?(k) }
-    %w(name host).each { |k| raise ArgumentError.new("expecting #{k}") unless atts.key? k}
-    atts
-  end
-
-  def self.from_params(params)
-    Capture.new(Capture.params_to_attributes(params))
-  end
-
   private
 
   def self.create_unknown(host)
-    Capture.create(name: "unknown_capture_#{SecureRandom.hex(2)}", host: host)
+    create(name: "unknown_capture_#{SecureRandom.hex(2)}", host: host)
   end
 
 end

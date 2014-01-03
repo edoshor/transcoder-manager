@@ -1,14 +1,11 @@
-require 'ohm'
-require 'ohm/datatypes'
-
-class Slot < Ohm::Model
-  include Ohm::DataTypes
+class Slot < BaseModel
 
   attribute :slot_id, Type::Integer
   reference :transcoder, :Transcoder
   reference :scheme, :Scheme
-
   index :slot_id
+
+  required_params %w(transcoder_id slot_id scheme_id)
 
   def validate
     assert_numeric :slot_id
@@ -56,5 +53,12 @@ class Slot < Ohm::Model
     atts[:transcoder] = Transcoder[atts.delete(:transcoder_id)]
     atts[:scheme] = Scheme[atts.delete(:scheme_id)]
     Slot.create(atts)
+  end
+
+  def self.params_to_attributes(params)
+    super(params) do |atts|
+      atts[:transcoder] = Transcoder[atts.delete(:transcoder_id)]
+      atts[:scheme] = Scheme[atts.delete(:scheme_id)]
+    end
   end
 end
