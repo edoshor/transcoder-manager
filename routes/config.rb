@@ -1,5 +1,6 @@
 require_relative '../app_config'
 require 'active_support/ordered_hash'
+require 'active_support/core_ext/string'
 
 class TranscoderManager < Sinatra::Base
 
