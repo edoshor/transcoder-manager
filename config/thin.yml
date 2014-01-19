@@ -1,8 +1,8 @@
-user: edos
-group: edos
+user: deploy
+group: deploy
 timeout: 30
 wait: 30
-log: logs/thin.log
+log: /var/www/transcoder-manager/logs/thin.log
 max_conns: 1024
 environment: production
 max_persistent_conns: 512
@@ -10,6 +10,6 @@ port: 9292
 threaded: true
 no-epoll: true
 daemonize: true
-pid: tmp/pids/thin.pid
+pid: /var/www/transcoder-manager/tmp/pids/thin.pid
 chdir: /var/www/transcoder-manager/current
 tag: transcoder-manager
