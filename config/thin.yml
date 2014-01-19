@@ -1,5 +1,5 @@
-user: edos
-group: edos
+user: deploy
+group: deploy
 timeout: 30
 wait: 30
 log: logs/thin.log
