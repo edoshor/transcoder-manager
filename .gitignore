@@ -20,3 +20,4 @@ doc/
 .idea/
 logs/
 tm-config.json
+vendor/
