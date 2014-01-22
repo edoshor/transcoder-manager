@@ -15,7 +15,7 @@ class TranscoderManager < Sinatra::Base
 
   # initialize logging
   disable :logging
-  Log4r::YamlConfigurator.load_yaml_file "#{File.dirname(__FILE__)}/config/logging-#{ENV['RACK_ENV']}.yaml"
+  Log4r::YamlConfigurator.load_yaml_file "#{File.dirname(__FILE__)}/config/logging-#{ENV['RACK_ENV']}.yml"
   use Rack::CommonLogger, LogWrapper.new('main')
   Log4r::Logger['main'].debug('Application loaded')
 

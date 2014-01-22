@@ -1,65 +1,74 @@
-# config valid only for Capistrano 3.1
-lock '3.1.0'
+require 'mina/bundler'
+require 'mina/rails'
+require 'mina/git'
+require 'mina/rbenv'  # for rbenv support. (http://rbenv.org)
 
-set :application, 'transcoder-manager'
-set :repo_url, 'git@github.com:edoshor/transcoder-manager.git'
+set :domain, 'staging'
 set :deploy_to, '/var/www/transcoder-manager'
-set :deploy_via, :remote_cache
+set :repository, 'https://github.com/edoshor/transcoder-manager'
+set :branch, 'master'
 
-# rbenv
-set :rbenv_type, :system # or :system, depends on your rbenv setup
-set :rbenv_ruby, '1.9.3-p484'
-set :rbenv_prefix, "RBENV_ROOT=#{fetch(:rbenv_path)} RBENV_VERSION=#{fetch(:rbenv_ruby)} #{fetch(:rbenv_path)}/bin/rbenv exec"
-set :rbenv_map_bins, %w{rake gem bundle ruby rails}
-set :rbenv_roles, :all # default value
+# Manually create these paths in shared/ (eg: shared/config/database.yml) in your server.
+# They will be linked in the 'deploy:link_shared_paths' step.
+set :shared_paths, %w(config/thin.yml config/logging-production.yml)
 
-# Default branch is :master
-# ask :branch, proc { `git rev-parse --abbrev-ref HEAD`.chomp }
+# Optional settings:
+set :user, 'deploy'    # Username in the server to SSH to.
+#   set :port, '30000'     # SSH port number.
 
-# Default value for :scm is :git
-# set :scm, :git
+# This task is the environment that is loaded for most commands, such as
+# `mina deploy` or `mina rake`.
+set :rbenv_path, '/usr/local/rbenv'
+task :environment do
+  # required for system wide installation of rbenv
+  queue %{export RBENV_ROOT=#{rbenv_path}}
 
-# Default value for :format is :pretty
-# set :format, :pretty
+  # If you're using rbenv, use this to load the rbenv environment.
+  # Be sure to commit your .rbenv-version to your repository.
+  invoke :'rbenv:load'
 
-# Default value for :log_level is :debug
-# set :log_level, :debug
-
-# Default value for :pty is false
-# set :pty, true
-
-# Default value for :linked_files is []
-# set :linked_files, %w{config/database.yml}
-
-# Default value for linked_dirs is []
-# set :linked_dirs, %w{bin log tmp/pids tmp/cache tmp/sockets vendor/bundle public/system}
-
-# Default value for default_env is {}
-# set :default_env, { path: "/opt/ruby/bin:$PATH" }
-
-# Default value for keep_releases is 5
-# set :keep_releases, 5
-
-namespace :deploy do
-
-  desc 'Restart application'
-  task :restart do
-    on roles(:app), in: :sequence, wait: 5 do
-      within current_path do
-        execute :bundle, 'exec thin -C config/thin.yml restart'
-      end
-    end
-  end
-
-  after :publishing, :restart
-
-  after :restart, :clear_cache do
-    on roles(:web), in: :groups, limit: 3, wait: 10 do
-      # Here we can do anything such as:
-      # within release_path do
-      #   execute :rake, 'cache:clear'
-      # end
-    end
-  end
-
+  # For those using RVM, use this to load an RVM version@gemset.
+  # invoke :'rvm:use[ruby-1.9.3-p125@default]'
 end
+
+# Put any custom mkdir's in here for when `mina setup` is ran.
+# For Rails apps, we'll make some of the shared paths that are shared between
+# all releases.
+task :setup => :environment do
+  queue! %[mkdir -p "#{deploy_to}/shared/log"]
+  queue! %[chmod g+rx,u+rwx "#{deploy_to}/shared/log"]
+
+  queue! %[mkdir -p "#{deploy_to}/shared/config"]
+  queue! %[chmod g+rx,u+rwx "#{deploy_to}/shared/config"]
+
+  queue! %[touch "#{deploy_to}/shared/config/thin.yml"]
+  queue  %[echo "-----> Be sure to edit 'shared/config/thin.yml'."]
+
+  queue! %[touch "#{deploy_to}/shared/config/logging-production.yml"]
+  queue  %[echo "-----> Be sure to edit 'shared/config/logging-production.yml'."]
+end
+
+desc 'Deploys the current version to the server.'
+task :deploy => :environment do
+  deploy do
+    # Put things that will set up an empty directory into a fully set-up
+    # instance of your project.
+    invoke :'git:clone'
+    invoke :'deploy:link_shared_paths'
+    invoke :'bundle:install'
+    #invoke :'rails:db_migrate'
+    #invoke :'rails:assets_precompile'
+
+    to :launch do
+      queue 'bundle exec thin -C config/thin.yml restart'
+    end
+  end
+end
+
+# For help in making your deploy script, see the Mina documentation:
+#
+#  - http://nadarei.co/mina
+#  - http://nadarei.co/mina/tasks
+#  - http://nadarei.co/mina/settings
+#  - http://nadarei.co/mina/helpers
+
