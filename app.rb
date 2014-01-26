@@ -33,6 +33,7 @@ class TranscoderManager < Sinatra::Base
     set :app_file, __FILE__
     disable :show_exceptions
     disable :raise_errors
+    set :protection, :except => :json_csrf
   end
 
   configure :development do
