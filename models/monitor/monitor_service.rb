@@ -9,6 +9,8 @@ require_relative '../transcoder'
 class MonitorService
   include Singleton
 
+  attr_reader :started
+
   # Start monitoring transcoders
   def start
     return if @started
