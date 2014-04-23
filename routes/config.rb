@@ -146,7 +146,11 @@ class TranscoderManager < Sinatra::Base
     preset = get_model(params[:id], Preset)
     atts = Preset.params_to_attributes(params)
     atts.delete(:tracks)
-    update_model preset, atts
+    update_model preset, atts do |model|
+      unless params[:gain].empty?
+        model.tracks.zip(params[:gain]).each {|t,g| t.update(gain: g) if g.to_i > 0}
+      end
+    end
   end
 
   delete '/presets/:id' do
