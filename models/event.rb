@@ -1,24 +1,27 @@
 class Event < BaseModel
 
   attribute :name
+  attribute :csid
   attribute :running, Type::Boolean
   attribute :last_switch, Type::Timestamp
   list :slots, :Slot
   unique :name
+  unique :csid
   index :running
 
-  required_params %w(name)
+  required_params %w(name csid)
 
   def validate
     assert_present :name
+    assert_present :csid
   end
 
   def to_hash
-    super.merge(name: name)
+    super.merge(name: name, csid: csid)
   end
 
   def to_s
-    "Event: name=#{name}, slots count = #{slots.size}"
+    "Event: name=#{name}, csid=#{csid}, slots count = #{slots.size}"
   end
 
   def start
