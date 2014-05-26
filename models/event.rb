@@ -67,7 +67,7 @@ class Event < BaseModel
     end
 
     if mutex_csid
-      urls.append(AUDIO_CONTROLLER) if Event.find(csid: mutex_csid, state: 'on').empty?
+      urls.append(AUDIO_CONTROLLER) unless Event.find(csid: mutex_csid).any? {|e| e.state == 'on'}
     end
 
     args = {csid: csid, command: (new_state == :on ? 'start' : 'stop')}
