@@ -9,6 +9,7 @@ class Event < BaseModel
   unique :name
   unique :csid
   index :running
+  index :csid
 
   required_params %w(name csid)
 
