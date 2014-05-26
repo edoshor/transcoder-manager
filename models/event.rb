@@ -68,7 +68,7 @@ class Event < BaseModel
       url = u % args
       Thread.new do
         begin
-          # Net::HTTP.get(URI.parse(url)).value
+          Net::HTTP.get(URI.parse(url)).value
           puts "calling #{url}: successful"
         rescue Exception => e
           puts "calling #{url}: failed #{e.message}"
