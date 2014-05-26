@@ -2,6 +2,7 @@ class Event < BaseModel
 
   attribute :name
   attribute :csid
+  attribute :state
   attribute :running, Type::Boolean
   attribute :last_switch, Type::Timestamp
   list :slots, :Slot
@@ -24,20 +25,60 @@ class Event < BaseModel
     "Event: name=#{name}, csid=#{csid}, slots count = #{slots.size}"
   end
 
+  def change_state(new_state)
+    return if state == new_state
+
+    if new_state == 'on'
+      start unless running
+      call_external_controllers(:on)
+    elsif new_state == 'off'
+      stop
+      call_external_controllers(:off)
+    elsif new_state == 'ready'
+      start unless running
+    else
+      raise "Unknown new state #{new_state}"
+    end
+    update state: new_state, last_switch: Time.now.to_i
+  end
+
   def start
     other_slots = other_running_events_slots
     slots.each { |slot| slot.start if other_slots.add? slot }
-    update running: true, last_switch: Time.now.to_i
+    update running: true
   end
 
   def stop
     other_slots = other_running_events_slots
     slots.each { |slot| slot.stop unless other_slots.delete? slot }
-    update running: false, last_switch: Time.now.to_i
+    update running: false
   end
 
-  def state
-    {running: running, last_switch: last_switch}
+  def call_external_controllers(new_state)
+    urls = [STREAMS_CONTROLLER ]
+    if csid == 'public' || csid == 'private'
+      urls.append(AUDIO_CONTROLLER)
+    end
+    if csid == 'private'
+      urls.append(GROUPS_CONTROLLER )
+    end
+
+    args = {csid: csid, command: (new_state == :on ? 'start' : 'stop')}
+    urls.each do |u|
+      url = u % args
+      Thread.new do
+        begin
+          # Net::HTTP.get(URI.parse(url)).value
+          puts "calling #{url}: successful"
+        rescue Exception => e
+          puts "calling #{url}: failed #{e.message}"
+        end
+      end
+    end
+  end
+
+  def status
+    {state: state, running: running, last_switch: last_switch}
   end
 
   def add_slot(slot)

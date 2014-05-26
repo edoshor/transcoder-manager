@@ -54,19 +54,16 @@ class TranscoderManager < Sinatra::Base
 
   # --- Broadcast events ---
 
-  get '/events/:id/start' do
-    get_model(params[:id], Event).start and success
-  end
-
-  get '/events/:id/stop' do
-    get_model(params[:id], Event).stop and success
+  get '/events/:id/:state' do |id, state|
+    pass unless state =~ /\A(on|off|ready)\z/i
+    get_model(id, Event).change_state(state) and success
   end
 
   get '/events/:id/status' do
     event = get_model(params[:id], Event)
-    state = event.state
-    state[:uptime] = format_duration(Time.now.to_i - state[:last_switch].to_i) if state[:running]
-    (params[:with_slots] ? state.merge(slots: slots_status(event.slots)) : state).to_json
+    status = event.status
+    status[:uptime] = format_duration(Time.now.to_i - status[:last_switch].to_i) if status[:state] == 'on'
+    (params[:with_slots] ? status.merge(slots: slots_status(event.slots)) : status).to_json
   end
 
   private
