@@ -58,7 +58,7 @@ class Event < BaseModel
 
   def call_external_controllers(new_state)
     urls = [STREAMS_CONTROLLER]
-    mutex_csid = ''
+    mutex_csid = nil
     if csid == 'public'
       mutex_csid = 'private'
     end
@@ -76,7 +76,10 @@ class Event < BaseModel
       url = u % args
       Thread.new do
         begin
-          resp = Net::HTTP.get(URI.parse(url))
+          uri = URI.parse(url)
+          http = Net::HTTP.new(uri.host, uri.port)
+          request = Net::HTTP::Get.new(uri.request_uri)
+          resp = http.request(request)
           resp.value
           puts "calling #{url}: successful"
         rescue Exception => e
