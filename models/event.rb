@@ -75,6 +75,22 @@ class Event < BaseModel
         end
       end
     end
+
+    # Sviva Tova is special - we need to use POST requests
+    if csid=='private' || csid=='sadna'
+      Thread.new do
+        begin
+          uri = URI.parse(SVIVA_TOVA_CONTROLLER)
+          resp = Net::HTTP.post_form(uri,
+                                     stream_preset_id: SVIVA_TOVA_STREAM_PRESET_IDS[csid],
+                                     state: SVIVA_TOVA_STATES[new_state])
+          resp.value
+          puts "calling #{url}: successful"
+        rescue Exception => e
+          puts "calling #{url}: failed #{e.message}"
+        end
+      end
+    end
   end
 
   def status
