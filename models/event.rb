@@ -36,6 +36,7 @@ class Event < BaseModel
       call_external_controllers(:off)
     elsif new_state == 'ready'
       start unless running
+      call_external_controllers(:ready)
     else
       raise "Unknown new state #{new_state}"
     end
@@ -55,23 +56,25 @@ class Event < BaseModel
   end
 
   def call_external_controllers(new_state)
-    urls = [STREAMS_CONTROLLER ]
-    if csid == 'public' || csid == 'private'
-      urls.append(AUDIO_CONTROLLER)
-    end
-    if csid == 'private'
-      urls.append(GROUPS_CONTROLLER )
-    end
+    unless new_state == :ready
+      urls = [STREAMS_CONTROLLER ]
+      if csid == 'public' || csid == 'private'
+        urls.append(AUDIO_CONTROLLER)
+      end
+      if csid == 'private'
+        urls.append(GROUPS_CONTROLLER )
+      end
 
-    args = {csid: csid, command: (new_state == :on ? 'start' : 'stop')}
-    urls.each do |u|
-      url = u % args
-      Thread.new do
-        begin
-          # Net::HTTP.get(URI.parse(url)).value
-          puts "calling #{url}: successful"
-        rescue Exception => e
-          puts "calling #{url}: failed #{e.message}"
+      args = {csid: csid, command: (new_state == :on ? 'start' : 'stop')}
+      urls.each do |u|
+        url = u % args
+        Thread.new do
+          begin
+            Net::HTTP.get(URI.parse(url)).value
+            puts "calling #{url}: successful"
+          rescue Exception => e
+            puts "calling #{url}: failed #{e.message}"
+          end
         end
       end
     end
