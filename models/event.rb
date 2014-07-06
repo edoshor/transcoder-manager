@@ -9,6 +9,7 @@ class Event < BaseModel
   unique :name
   unique :csid
   index :running
+  index :csid
 
   required_params %w(name csid)
 
@@ -56,25 +57,38 @@ class Event < BaseModel
   end
 
   def call_external_controllers(new_state)
-    unless new_state == :ready
-      urls = [STREAMS_CONTROLLER ]
-      if csid == 'public' || csid == 'private'
-        urls.append(AUDIO_CONTROLLER)
-      end
-      if csid == 'private'
-        urls.append(GROUPS_CONTROLLER )
-      end
+    urls = [STREAMS_CONTROLLER]
+    mutex_csid = nil
+    if csid == 'public'
+      mutex_csid = 'private'
+    end
+    if csid == 'private'
+      urls.append(GROUPS_CONTROLLER)
+      mutex_csid = 'public'
+    end
 
-      args = {csid: csid, command: (new_state == :on ? 'start' : 'stop')}
-      urls.each do |u|
-        url = u % args
-        Thread.new do
-          begin
-            Net::HTTP.get(URI.parse(url)).value
-            puts "calling #{url}: successful"
-          rescue Exception => e
-            puts "calling #{url}: failed #{e.message}"
-          end
+    if mutex_csid
+      urls.append(AUDIO_CONTROLLER) unless Event.find(csid: mutex_csid).any? {|e| e.state == 'on'}
+    end
+
+    command = 'start'
+    if new_state == :off || (new_state == :ready && self.state == 'on')
+        command = 'stop'
+    end
+
+    args = {csid: csid, command: command}
+    urls.each do |u|
+      url = u % args
+      Thread.new do
+        begin
+          uri = URI.parse(url)
+          http = Net::HTTP.new(uri.host, uri.port)
+          request = Net::HTTP::Get.new(uri.request_uri)
+          resp = http.request(request)
+          resp.value
+          puts "calling #{url}: successful"
+        rescue Exception => e
+          puts "calling #{url}: failed #{e.message}"
         end
       end
     end
@@ -84,9 +98,8 @@ class Event < BaseModel
       Thread.new do
         begin
           uri = URI.parse(SVIVA_TOVA_CONTROLLER)
-          resp = Net::HTTP.post_form(uri,
-                                     stream_preset_id: SVIVA_TOVA_STREAM_PRESET_IDS[csid],
-                                     state: SVIVA_TOVA_STATES[new_state])
+          resp = Net::HTTP.post_form(uri,{ stream_preset_id: SVIVA_TOVA_STREAM_PRESET_IDS[csid],
+                                           state: SVIVA_TOVA_STATES[new_state]})
           resp.value
           puts "calling #{url}: successful"
         rescue Exception => e
@@ -94,6 +107,7 @@ class Event < BaseModel
         end
       end
     end
+
   end
 
   def status
