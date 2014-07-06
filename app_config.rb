@@ -24,5 +24,5 @@ STREAMS_CONTROLLER='http://10.102.4.111:3001/event/%{csid}/%{command}'
 # stream_preset_id: sviva tova internal stream preset id
 # state: hard coded mapping of our event state to sviva tova's states
 SVIVA_TOVA_CONTROLLER='http://kabbalahgroup.info/internet/api/v1/streams/set_stream_state.json'
-SVIVA_TOVA_STREAM_PRESET_IDS = {:'private' => 3, :'sadna' => 6}
+SVIVA_TOVA_STREAM_PRESET_IDS = {private: '3', sadna: '6'}
 SVIVA_TOVA_STATES = {on: 'active', ready: 'preparing_to_broadcast', off: 'not_active'}
