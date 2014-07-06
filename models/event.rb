@@ -98,12 +98,12 @@ class Event < BaseModel
       Thread.new do
         begin
           uri = URI.parse(SVIVA_TOVA_CONTROLLER)
-          resp = Net::HTTP.post_form(uri,{ stream_preset_id: SVIVA_TOVA_STREAM_PRESET_IDS[csid],
+          resp = Net::HTTP.post_form(uri,{ stream_preset_id: SVIVA_TOVA_STREAM_PRESET_IDS[csid.to_sym],
                                            state: SVIVA_TOVA_STATES[new_state]})
           resp.value
-          puts "calling #{url}: successful"
+          puts 'calling sviva tova: successful'
         rescue Exception => e
-          puts "calling #{url}: failed #{e.message}"
+          puts "calling sviva tova: failed #{e.message}"
         end
       end
     end
