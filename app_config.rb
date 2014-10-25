@@ -26,3 +26,8 @@ STREAMS_CONTROLLER='http://10.102.4.111:3001/event/%{csid}/%{command}'
 SVIVA_TOVA_CONTROLLER='http://kabbalahgroup.info/internet/api/v1/streams/set_stream_state.json'
 SVIVA_TOVA_STREAM_PRESET_IDS = {private: '3', sadna: '6'}
 SVIVA_TOVA_STATES = {on: 'active', ready: 'preparing_to_broadcast', off: 'not_active'}
+
+# kab.tv controller: triggers on public events
+# csid = event cross system ID
+# command = start | stop
+KABTV_CONTROLLER='http://kab.tv/api/event_status/%{csid}/%{command}'
