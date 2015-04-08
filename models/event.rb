@@ -61,7 +61,7 @@ class Event < BaseModel
     mutex_csid = nil
     if csid == 'public'
       mutex_csid = 'private'
-      urls.append(KABTV_CONTROLLER)
+      urls.append(KABTV_CONTROLLER) unless new_state == :ready && self.state == 'off'
     end
     if csid == 'private'
       urls.append(GROUPS_CONTROLLER)
